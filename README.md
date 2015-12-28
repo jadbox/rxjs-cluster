@@ -1,5 +1,6 @@
 # rxjs-cluster
 
+(WIP: Working Alpha)
 Using Rx, maximize CPU usage in Node by using the new clusterMap that uses cluster/forked processes
 
 ```
