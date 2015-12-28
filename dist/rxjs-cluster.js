@@ -99,7 +99,7 @@ require("source-map-support").install();
 	// Children work
 	var work = new Rx.Subject();
 	function setupChild() {
-		work.flatMap(childWork, function (y, x) {
+		work.concatMap(childWork, function (y, x) {
 			return { data: x, id: y.id };
 		}).subscribe(function (_ref) {
 			var data = _ref.data;
@@ -119,7 +119,7 @@ require("source-map-support").install();
 		var func = _ref2.func;
 	
 		var funcRef = childEntries[func];
-		//funcRef.a();
+	
 		if (!funcRef) {
 			console.log('Function not found in childMethod lookup:', func);
 			return;

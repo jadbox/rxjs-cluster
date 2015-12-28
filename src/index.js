@@ -43,7 +43,7 @@ function startWorkers(numWorkers, onReady) {
 // Children work
 const work = new Rx.Subject();
 function setupChild() {
-	work.flatMap(childWork, (y,x) => ({ data: x, id: y.id }))
+	work.concatMap(childWork, (y,x) => ({ data: x, id: y.id }))
 		.subscribe(
 		    ({data, id}) => process.send({rdata: data, id}),
 		    (x) => console.log('Child '+process.pid+' err', x)
