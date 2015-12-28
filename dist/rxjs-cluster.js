@@ -57,6 +57,7 @@ require("source-map-support").install();
 	function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj; }
 	
 	// Rx global hunting
+	// Todo: remove in favor of bind?
 	var objectTypes = { 'function': true, 'object': true };
 	
 	var root = objectTypes[typeof window === 'undefined' ? 'undefined' : _typeof(window)] && window || undefined,
@@ -64,10 +65,11 @@ require("source-map-support").install();
 	
 	if (freeGlobal && (freeGlobal.global === freeGlobal || freeGlobal.window === freeGlobal)) root = freeGlobal;
 	
-	var cluster = __webpack_require__(1);
-	
 	root = root || global || window || undefined;
-	var Rx = root.Rx || __webpack_require__(2);
+	var Rx = root.Rx || __webpack_require__(1);
+	
+	// Main
+	var cluster = __webpack_require__(2);
 	
 	var _ = __webpack_require__(3);
 	
@@ -103,22 +105,21 @@ require("source-map-support").install();
 			var data = _ref.data;
 			var id = _ref.id;
 			return process.send({ rdata: data, id: id });
-		}, function (_ref2) {
-			var data = _ref2.data;
-			var id = _ref2.id;
-			return console.log('child err', data, id);
+		}, function (x) {
+			return console.log('Child ' + process.pid + ' err', x);
 		});
 		process.on('message', function (x) {
 			return work.onNext(x);
 		}); // push work unto task stream
 	}
 	
-	function childWork(_ref3) {
-		var data = _ref3.data;
-		var id = _ref3.id;
-		var func = _ref3.func;
+	function childWork(_ref2) {
+		var data = _ref2.data;
+		var id = _ref2.id;
+		var func = _ref2.func;
 	
 		var funcRef = childEntries[func];
+		//funcRef.a();
 		if (!funcRef) {
 			console.log('Function not found in childMethod lookup:', func);
 			return;
@@ -184,9 +185,9 @@ require("source-map-support").install();
 				worker.jobIndex++;
 	
 				worker.send({ data: data, id: jobIndex, func: funcName });
-				worker.on('message', function handler(_ref4) {
-					var rdata = _ref4.rdata;
-					var id = _ref4.id;
+				worker.on('message', function handler(_ref3) {
+					var rdata = _ref3.rdata;
+					var id = _ref3.id;
 	
 					if (id !== jobIndex) return; // ignore
 					worker.removeListener('message', handler);
@@ -203,13 +204,13 @@ require("source-map-support").install();
 /* 1 */
 /***/ function(module, exports) {
 
-	module.exports = require("cluster");
+	module.exports = require("rx");
 
 /***/ },
 /* 2 */
 /***/ function(module, exports) {
 
-	module.exports = require("rx");
+	module.exports = require("cluster");
 
 /***/ },
 /* 3 */

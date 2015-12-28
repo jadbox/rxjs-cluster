@@ -4,7 +4,7 @@
   "description": "Use Node.js cluster support to parallize Rx",
   "scripts": {
     "build": "webpack --config webpack.config.js  --progress --colors --watch",
-    "test": "node dist/test.js"
+    "test": "node test/test.js"
   },
   "main": "dist/rxjs-cluster.js",
   "author": "Jonathan Dunlap <jdunlap@outlook.com>",

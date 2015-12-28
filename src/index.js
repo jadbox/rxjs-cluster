@@ -46,13 +46,14 @@ function setupChild() {
 	work.flatMap(childWork, (y,x) => ({ data: x, id: y.id }))
 		.subscribe(
 		    ({data, id}) => process.send({rdata: data, id}),
-		    ({data, id}) => console.log('child err', data, id)
+		    (x) => console.log('Child '+process.pid+' err', x)
  	)
  	process.on('message', x => work.onNext(x)); // push work unto task stream
 }
 
 function childWork({data, id, func}) {
 	const funcRef = childEntries[func];
+
 	if(!funcRef) {
 		console.log('Function not found in childMethod lookup:', func)
 		return;
