@@ -4,7 +4,7 @@ Using Rx, maximize CPU usage in Node by using the new clusterMap that uses clust
 
 ```
 var Rx = require('rx');
-var rc = require('../dist/rxjs-cluster.js'); // import
+var rc = require('rxjs-cluster'); // import
 
 var Observable = Rx.Observable;
 
