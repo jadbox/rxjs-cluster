@@ -1,5 +1,7 @@
 # rxjs-cluster
 
+_[Moore's law ceiling](http://www.agner.org/optimize/blog/read.php?i=417): "The biggest potential for improved performance is now, as I see it, on the software side [...] with parallelism which has so far not been [broadly] implemented."_
+
 _(WIP: Working Alpha)_
 
 Using Rx, maximize CPU usage in Node by using the new clusterMap that uses cluster/forked processes
