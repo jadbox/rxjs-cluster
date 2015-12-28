@@ -51,6 +51,8 @@ require("source-map-support").install();
 		value: true
 	});
 	exports.entry = entry;
+	exports.getWorkers = getWorkers;
+	exports.killall = killall;
 	var cluster = __webpack_require__(1);
 	var Rx = __webpack_require__(2);
 	var _ = __webpack_require__(3);
@@ -108,9 +110,11 @@ require("source-map-support").install();
 			return;
 		}
 	
-		if (!funcRef.subscribe) {
-			return Rx.Observable.just(funcRef(data));
-		} else return funcRef(data).first();
+		var exec = funcRef(data);
+	
+		if (!exec.subscribe) {
+			return Rx.Observable.just(exec);
+		} else return exec.first();
 	}
 	
 	/*
@@ -139,6 +143,16 @@ require("source-map-support").install();
 		if (cluster.isMaster && typeof entryFun === 'function') {
 			startWorkers(numWorkers, entryFun);
 		}
+	}
+	
+	function getWorkers() {
+		return workers;
+	}
+	
+	function killall() {
+		_.forEach(workers, function (x) {
+			return x.kill();
+		});
 	}
 	
 	var n = 0; // round-robin scheduling

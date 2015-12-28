@@ -43,10 +43,12 @@ function childWork({data, id, func}) {
 		return;
 	}
 
-	if(!funcRef.subscribe) {
-		return Rx.Observable.just( funcRef(data) );
+	const exec = funcRef(data);
+
+	if(!exec.subscribe) {
+		return Rx.Observable.just( exec );
 	}
-	else return funcRef(data).first();
+	else return exec.first();
 }
 
 /*
@@ -76,6 +78,14 @@ export function entry(numWorkers, entryFun, childMethods) {
 	if(cluster.isMaster && typeof entryFun === 'function') {
 		startWorkers(numWorkers, entryFun);
 	}
+}
+
+export function getWorkers() {
+	return workers;
+}
+
+export function killall() {
+  _.forEach(workers, x => x.kill() );
 }
 
 var n = 0; // round-robin scheduling
