@@ -1,0 +1,24 @@
+{
+  "name": "rxjs-cluster",
+  "version": "0.0.1",
+  "description": "Use Node.js cluster support to parallize Rx",
+  "scripts": {
+    "start": "node dist/app.js",
+    "build": "webpack --config webpack.config.js  --progress --colors --watch",
+    "test": ""
+  },
+  "author": "Jonathan Dunlap <jdunlap@outlook.com>",
+  "license": "ISC",
+  "dependencies": {
+    "node-lambda": "^0.7.1",
+    "webpack": "^1.12.9"
+  },
+  "devDependencies": {
+    "babel-core": "^6.3.26",
+    "babel-loader": "^6.2.0",
+    "babel-plugin-transform-function-bind": "^6.3.13",
+    "babel-preset-es2015": "^6.3.13",
+    "path": "^0.12.7",
+    "source-map-support": "^0.4.0"
+  }
+}
