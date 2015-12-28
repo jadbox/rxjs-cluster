@@ -1,5 +1,20 @@
+// Rx global hunting
+// Todo: remove in favor of bind?
+var objectTypes = { 'function': true, 'object': true };
+
+var root = (objectTypes[typeof window] && window) || this,
+    freeGlobal = objectTypes[typeof global] && global;
+
+if (freeGlobal && (freeGlobal.global === freeGlobal || freeGlobal.window === freeGlobal)) 
+	root = freeGlobal;
+  
+root = root || global || window || this;
+const Rx = root.Rx ||
+			require('rx');
+
+// Main
 const cluster = require('cluster');
-const Rx = require('rx');
+
 const _ = require('lodash');
 
 const Observable = Rx.Observable;
@@ -89,7 +104,9 @@ export function killall() {
 }
 
 var n = 0; // round-robin scheduling
-Observable.clusterMap = observableProto.clusterMap = function(funcName) {
+Observable.clusterMap = 
+observableProto.clusterMap = 
+function(funcName) {
 	return this.flatMap( data => Rx.Observable.create(function(o) {
       const workerIndex = n % workers.length;
       n++;
@@ -109,4 +126,6 @@ Observable.clusterMap = observableProto.clusterMap = function(funcName) {
         o.onCompleted();
       } )
     }))
-}
+};
+
+export var clusterMap = observableProto.clusterMap;

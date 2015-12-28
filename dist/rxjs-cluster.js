@@ -53,8 +53,22 @@ require("source-map-support").install();
 	exports.entry = entry;
 	exports.getWorkers = getWorkers;
 	exports.killall = killall;
+	
+	function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj; }
+	
+	// Rx global hunting
+	var objectTypes = { 'function': true, 'object': true };
+	
+	var root = objectTypes[typeof window === 'undefined' ? 'undefined' : _typeof(window)] && window || undefined,
+	    freeGlobal = objectTypes[typeof global === 'undefined' ? 'undefined' : _typeof(global)] && global;
+	
+	if (freeGlobal && (freeGlobal.global === freeGlobal || freeGlobal.window === freeGlobal)) root = freeGlobal;
+	
 	var cluster = __webpack_require__(1);
-	var Rx = __webpack_require__(2);
+	
+	root = root || global || window || undefined;
+	var Rx = root.Rx || __webpack_require__(2);
+	
 	var _ = __webpack_require__(3);
 	
 	var Observable = Rx.Observable;
@@ -182,6 +196,8 @@ require("source-map-support").install();
 			});
 		});
 	};
+	
+	var clusterMap = exports.clusterMap = observableProto.clusterMap;
 
 /***/ },
 /* 1 */
