@@ -37,3 +37,5 @@ function master() {
 // Define number of workers, master entry point, worker functions
 rc.entry(3, master, { childTest: childTest, childTest$: childTest$ });
 
+// Or define leave the default number of workers to # of cpu cores
+// rc.entry(master, { childTest: childTest, childTest$: childTest$ });
