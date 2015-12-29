@@ -25,19 +25,19 @@ const childEntries = {};
 
 function startWorkers(numWorkers, onReady) {
   // cluster manager
-  for(var i = 0; i < numWorkers; i++) {
-    cluster.fork();
-  }
   var n = 0;
   cluster.on('online', function(worker) {
-    n++;
-    if(n === numWorkers) onReady();
+    if(n === numWorkers) { onReady(); return; }
     console.log('Worker ' + worker.process.pid + ' is online');
     if(worker.setMaxListeners) worker.setMaxListeners(0);
     workers.push( worker );
-
+    n++;
     //worker.on('message', x => console.log('worker: ', x));
   });
+
+  for(var i = 0; i <= numWorkers; i++) {
+    cluster.fork();
+  }
 }
 
 // Children work
@@ -110,6 +110,7 @@ observableProto.clusterMap =
 function(funcName) {
 	return this.flatMap( data => Rx.Observable.create(function(o) {
       const workerIndex = n % workers.length;
+      //console.log(workerIndex, n, workers.length);
       n++;
       //if( n === Number.MAX_SAFE_INTEGER) x = Number.MIN_SAFE_INTEGER; // should be safe
       //console.log(workers.length, workerIndex, x);

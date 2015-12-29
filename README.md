@@ -14,16 +14,16 @@ var Observable = Rx.Observable;
 
 // Child function that returns raw value
 function childTest(x) {
-	return "hello " + x;
+	return "hello " + x + " from " + process.pid;
 }
 
 // Child function that returns an Observable
 function childTest$(x) {
-	return Rx.Observable.range(0,5).map("hello " + x).toArray();
+	return Rx.Observable.range(0,3).map("hello " + x).toArray();
 }
 
 function master() {
-	Observable.just('Jonathan')
+	Observable.from(['Jonathan', 'James', 'Edwin'])
 		.clusterMap('childTest')
 		.subscribe( 
 			function(x) { console.log(x); },
@@ -31,7 +31,7 @@ function master() {
 			function() { console.log('Completed'); }
 		);
 
-	Observable.just('Jonathan')
+	Observable.from(['Jonathan', 'James', 'Edwin'])
 		.clusterMap('childTest$')
 		.subscribe( 
 			function(x) { console.log(x); },
