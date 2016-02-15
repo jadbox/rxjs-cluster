@@ -50,12 +50,12 @@ require("source-map-support").install();
 	Object.defineProperty(exports, "__esModule", {
 		value: true
 	});
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+	
 	exports.entry = entry;
 	exports.getWorkers = getWorkers;
 	exports.killall = killall;
-	
-	function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj; }
-	
 	// Rx global hunting
 	// Todo: remove in favor of bind?
 	var objectTypes = { 'function': true, 'object': true };
