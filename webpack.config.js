@@ -44,10 +44,8 @@ module.exports = {
         path: path.resolve(__dirname, 'dist')
     },
     plugins: [
-      new webpack.BannerPlugin('require("source-map-support").install();',
-                             { raw: true, entryOnly: false })
     ],
     externals: nodeModules,
-    devtool: '#source-map',
+    devtool: 'source-map',
     debug: true
 }
