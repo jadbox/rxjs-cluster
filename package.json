@@ -11,7 +11,7 @@
   "repository": "jadbox/rxjs-cluster",
   "license": "ISC",
   "dependencies": {
-    "lodash": "^4.5.1",
+    "lodash": "^4.9.0",
     "node-lambda": "^0.7.1",
     "rx": "^4.0.8",
     "webpack": "^1.12.13"
