@@ -14,16 +14,48 @@ function childTest$(x) {
 }
 
 function master() {
+	console.log('master');
 	Observable.from(['Jonathan', 'James', 'Edwin'])
 		.clusterMap('childTest')
 		.subscribe( 
 			function(x) { console.log(x); },
 			function(x) { console.log('Err ' + x); },
-			function() { console.log('Completed'); }
+			function() { master2(); }
 		);
 
+	
+}
+
+function master2() {
+	console.log('master2');
 	Observable.from(['Jonathan', 'James', 'Edwin'])
 		.clusterMap('childTest$')
+		.subscribe( 
+			function(x) { console.log(x); },
+			function(x) { console.log('Err ' + x); },
+			function() { 
+				master3();
+			}
+		);
+}
+
+function master3() {
+	console.log('master3');
+	Observable.from(['Jonathan', 'James', 'Edwin'])
+		.clusterMap('childTest', 199) // use node index of hash id 199
+		.subscribe( 
+			function(x) { console.log(x); },
+			function(x) { console.log('Err ' + x); },
+			function() { console.log('Completed'); master4(); }
+		);
+
+	
+}
+
+function master4() {
+	console.log('master4');
+	Observable.from(['Jonathan', 'James', 'Edwin', 'Edwin', 'Edwin', 'Flipper'])
+		.clusterMap('childTest$', x=>x) // use the name as the node index hash
 		.subscribe( 
 			function(x) { console.log(x); },
 			function(x) { console.log('Err ' + x); },
