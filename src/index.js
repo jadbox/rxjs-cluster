@@ -49,7 +49,7 @@ function startWorkers(numWorkers, onReady, options) {
 // Children work
 const work = new Rx.Subject();
 
-function setupChild() {
+function setupChild(options) {
     work.concatMap(childWork, (y, x) => ({
         data: x,
         id: y.id
@@ -104,7 +104,7 @@ function entry(numWorkers, entryFun, childMethods, options) {
 
     // Child entry point
     if (!cluster.isMaster) {
-        setupChild();
+        setupChild(options);
         return;
     }
 

@@ -104,7 +104,7 @@
 	// Children work
 	var work = new Rx.Subject();
 	
-	function setupChild() {
+	function setupChild(options) {
 	    work.concatMap(childWork, function (y, x) {
 	        return {
 	            data: x,
@@ -165,7 +165,7 @@
 	
 	    // Child entry point
 	    if (!cluster.isMaster) {
-	        setupChild();
+	        setupChild(options);
 	        return;
 	    }
 	
