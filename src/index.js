@@ -13,7 +13,7 @@ export default function Cluster(options) {
     debug: false
   }, options || {});
 
-  const sys = this.sys = options.system = options.system || new ProcCluster();
+  const sys = this.sys = options.system = options.system || new ProcCluster( { workers:options.workers } );
 
   this.n = 0; // round-robin scheduling
   this.work = new Rx.Subject(); // Children work

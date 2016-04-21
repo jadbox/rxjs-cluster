@@ -1,7 +1,14 @@
 import cluster from 'cluster';
 import _ from 'lodash';
 
-export default function ProcCluster() {
+export default function ProcCluster(options) {
+  if(!options.workers) options.workers = require('os').cpus().length;
+
+  this.options = Object.assign({
+    
+  }, options);
+
+
   this.clusterMapObs = _clusterMapObs.bind(this);
   this.setupChild = _setupChild.bind(this);
   this.startWorkers = _startWorkers.bind(this);
@@ -33,8 +40,7 @@ function _setupChild(self, work) {
 }
 
 function _startWorkers(self, workers, onReady) {
-  const options = self._options;
-  const numWorkers = options.spread || require('os').cpus().length;
+  const numWorkers = this.options.workers;
   // cluster manager
   var n = 0;
   //const workers = self.workers;

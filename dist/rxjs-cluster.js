@@ -81,7 +81,7 @@
 	    debug: false
 	  }, options || {});
 	
-	  var sys = this.sys = options.system = options.system || new _ProcCluster2.default();
+	  var sys = this.sys = options.system = options.system || new _ProcCluster2.default({ workers: options.workers });
 	
 	  this.n = 0; // round-robin scheduling
 	  this.work = new _rx2.default.Subject(); // Children work
@@ -234,7 +234,11 @@
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
-	function ProcCluster() {
+	function ProcCluster(options) {
+	  if (!options.workers) options.workers = __webpack_require__(6).cpus().length;
+	
+	  this.options = Object.assign({}, options);
+	
 	  this.clusterMapObs = _clusterMapObs.bind(this);
 	  this.setupChild = _setupChild.bind(this);
 	  this.startWorkers = _startWorkers.bind(this);
@@ -273,8 +277,7 @@
 	}
 	
 	function _startWorkers(self, workers, onReady) {
-	  var options = self._options;
-	  var numWorkers = options.spread || __webpack_require__(6).cpus().length;
+	  var numWorkers = this.options.workers;
 	  // cluster manager
 	  var n = 0;
 	  //const workers = self.workers;
