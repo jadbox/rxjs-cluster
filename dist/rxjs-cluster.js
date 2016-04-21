@@ -151,7 +151,7 @@
 	
 	    // Master entry point
 	    if (isMaster && typeof entryFun === 'function') {
-	      _this2.startWorkers(_this2, entryFun, options);
+	      _this2.startWorkers(_this2, _this2.workers, entryFun, options);
 	    }
 	  });
 	}
@@ -284,11 +284,11 @@
 	  }); // push work unto task stream
 	}
 	
-	function _startWorkers(self, onReady, options) {
+	function _startWorkers(self, workers, onReady, options) {
 	  var numWorkers = options.spread || __webpack_require__(5).cpus().length;
 	  // cluster manager
 	  var n = 0;
-	  var workers = self.workers;
+	  //const workers = self.workers;
 	
 	  _cluster2.default.setupMaster({
 	    silent: false
