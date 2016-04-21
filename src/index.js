@@ -11,6 +11,8 @@ export default function Cluster(options) {
   this.childEntries = {};
   this._options = options = options || {};
   if(!options.system) options.system = new ProcCluster();
+  //if(!options.spread) options.spread = require('os').cpus().length;
+
   const sys = this.sys = options.system;
 
   this.n = 0; // round-robin scheduling
@@ -31,90 +33,86 @@ export default function Cluster(options) {
 }
 
 function _childWork({
-    data, id, func
+  data, id, func
 }) {
-    const funcRef = this.childEntries[func];
+  const funcRef = this.childEntries[func];
 
-    if (!funcRef) {
-        console.log('Function not found in childMethod lookup:', func)
-        throw new Error('Function not found in childMethod lookup: '+ func);
-        return;
-    }
+  if (!funcRef) {
+    console.log('Function not found in childMethod lookup:', func)
+    throw new Error('Function not found in childMethod lookup: '+ func);
+    return;
+  }
 
-    const exec = funcRef(data);
+  const exec = funcRef(data);
 
-    if (!exec.subscribe) {
-        return Rx.Observable.just(exec);
-    } else return exec.first();
+  if (!exec.subscribe) {
+    return Rx.Observable.just(exec);
+  } else return exec.first();
 }
 
 /*
-	@param numWorkers number of cpus
-	@param entryFun the master entry function
-	@param options options object
+@param numWorkers number of cpus
+@param entryFun the master entry function
+@param options options object
 */
-function _entry(numWorkers, entryFun, childMethods, options) {
-    options = options || {};
-    if (typeof numWorkers === 'function') {
-        childMethods = entryFun;
-        entryFun = numWorkers;
-        const cpus = require('os').cpus().length;
-        numWorkers = cpus;
+function _entry(entryFun, childMethods) {
+  const options = this._options;
 
-    }
+  const childEntries = this.childEntries;
+  _.forEach(childMethods, (v, k) => {
+    if (v && (v.subscribe || typeof v === 'function')) childEntries[k] = v;
+  });
 
-    const childEntries = this.childEntries;
-    _.forEach(childMethods, (v, k) => {
-        if (v && (v.subscribe || typeof v === 'function')) childEntries[k] = v;
-    });
-
-    const isMaster = this._options.isMaster || this.sys.isMaster;
+  const isMasterCheck = this._options.isMaster ? x => true : this.sys.isMasterCheck;
+  //const isMaster = this._options.isMaster || this.sys.isMaster;
+  isMasterCheck(options, isMaster => {
 
     // Child entry point
     if (!isMaster) {
-        this.setupChild(this, this.work, options);
-        return;
+      this.setupChild(this, this.work, options);
+      return;
     }
 
     // Master entry point
     if (isMaster && typeof entryFun === 'function') {
-        this.startWorkers(this, numWorkers, entryFun, options);
+      this.startWorkers(this, entryFun, options);
     }
+  });
 }
 
 function _getWorkers() {
-    return this.workers;
+  return this.workers;
 }
 
 /*
-	@param funcName function to invoke
-	@param nodeSelector (optional) (function | string | int) used to pick node. If function, the value is the stream object and the return is (string | int).
+@param funcName function to invoke
+@param nodeSelector (optional) (function | string | int) used to pick node. If function, the value is the stream object and the return is (string | int).
 */
 function _clusterMap(that, funcName, nodeSelector) {
-    	let key = null;
-    	if(nodeSelector !== undefined && nodeSelector !== null && typeof nodeSelector !== 'function') {
-    		key = Number.isInteger(nodeSelector) ? nodeSelector : hash(nodeSelector.toString());
-    		nodeSelector = null;
-    	}
-      const workers = that.workers;
-      //const that = this;
-      return this.flatMap(data => Rx.Observable.create(obs => {
-            if (nodeSelector) {
-            	const nodeKey = nodeSelector(data);
-                key = Number.isInteger(nodeKey) ? nodeKey : hash(nodeKey.toString());
-            }
+  let key = null;
+  if(nodeSelector !== undefined && nodeSelector !== null && typeof nodeSelector !== 'function') {
+    key = Number.isInteger(nodeSelector) ? nodeSelector : hash(nodeSelector.toString());
+    nodeSelector = null;
+  }
+  const workers = that.workers;
+  //const that = this;
+  return this.flatMap(data => Rx.Observable.create(obs => {
+    if (nodeSelector) {
+      const nodeKey = nodeSelector(data);
+      key = Number.isInteger(nodeKey) ? nodeKey : hash(nodeKey.toString());
+    }
 
-            const workerIndex = key ? (key % workers.length) : (that.n++ % workers.length);
-            //console.log(workerIndex, n, workers.length);
-            //n++;
-            //if( n === Number.MAX_SAFE_INTEGER) x = Number.MIN_SAFE_INTEGER; // should be safe
-            //console.log(workers.length, workerIndex, x);
-            const worker = workers[workerIndex];
+    const workerIndex = key ? (key % workers.length) : (that.n++ % workers.length);
+    //console.log(workerIndex, n, workers.length);
+    //n++;
+    //if( n === Number.MAX_SAFE_INTEGER) x = Number.MIN_SAFE_INTEGER; // should be safe
+    //console.log(workers.length, workerIndex, x);
+    const worker = workers[workerIndex];
 
-            worker.jobIndex = worker.jobIndex || 0;
-            const jobIndex = worker.jobIndex;
-            worker.jobIndex++;
+    worker.jobIndex = worker.jobIndex || 0;
+    const jobIndex = worker.jobIndex;
+    worker.jobIndex++;
 
-            that.sys.clusterMapObs(that, obs, data, funcName, jobIndex, worker);
-    }))
+    that.sys.clusterMapObs(that, obs, data, funcName, jobIndex, worker);
+  }))
 };

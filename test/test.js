@@ -122,7 +122,7 @@ else {
 	});
 }
 
-pc.entry(3, start, { childTest: childTest, childTest$: childTest$ });
+pc.entry(start, { childTest: childTest, childTest$: childTest$ });
 
 // Define number of workers, master entry point, worker functions
 var _done;

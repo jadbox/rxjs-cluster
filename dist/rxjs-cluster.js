@@ -47,7 +47,7 @@
 	'use strict';
 	
 	Object.defineProperty(exports, "__esModule", {
-	    value: true
+	  value: true
 	});
 	exports.default = Cluster;
 	
@@ -73,123 +73,126 @@
 	var observableProto = Observable.prototype;
 	
 	function Cluster(options) {
-	    var _this = this;
+	  var _this = this;
 	
-	    this.workers = [];
-	    this.childEntries = {};
-	    this._options = options = options || {};
-	    if (!options.system) options.system = new _ProcCluster2.default();
-	    var sys = this.sys = options.system;
+	  this.workers = [];
+	  this.childEntries = {};
+	  this._options = options = options || {};
+	  if (!options.system) options.system = new _ProcCluster2.default();
+	  //if(!options.spread) options.spread = require('os').cpus().length;
 	
-	    this.n = 0; // round-robin scheduling
-	    this.work = new _rx2.default.Subject(); // Children work
+	  var sys = this.sys = options.system;
 	
-	    var that = this;
-	    this.startWorkers = sys.startWorkers;
-	    this.clusterMap = function (x, y, z) {
-	        var ___clusterMap = _clusterMap.bind(this);
-	        return ___clusterMap(that, x, y, z);
-	    };
+	  this.n = 0; // round-robin scheduling
+	  this.work = new _rx2.default.Subject(); // Children work
 	
-	    this.setupChild = sys.setupChild;
-	    this.childWork = _childWork.bind(this);
-	    this.entry = _entry.bind(this);
-	    this.getWorkers = _getWorkers.bind(this);
-	    this.killall = function (x) {
-	        return sys.killall(_this);
-	    };
+	  var that = this;
+	  this.startWorkers = sys.startWorkers;
+	  this.clusterMap = function (x, y, z) {
+	    var ___clusterMap = _clusterMap.bind(this);
+	    return ___clusterMap(that, x, y, z);
+	  };
+	
+	  this.setupChild = sys.setupChild;
+	  this.childWork = _childWork.bind(this);
+	  this.entry = _entry.bind(this);
+	  this.getWorkers = _getWorkers.bind(this);
+	  this.killall = function (x) {
+	    return sys.killall(_this);
+	  };
 	}
 	
 	function _childWork(_ref) {
-	    var data = _ref.data;
-	    var id = _ref.id;
-	    var func = _ref.func;
+	  var data = _ref.data;
+	  var id = _ref.id;
+	  var func = _ref.func;
 	
-	    var funcRef = this.childEntries[func];
+	  var funcRef = this.childEntries[func];
 	
-	    if (!funcRef) {
-	        console.log('Function not found in childMethod lookup:', func);
-	        throw new Error('Function not found in childMethod lookup: ' + func);
-	        return;
-	    }
+	  if (!funcRef) {
+	    console.log('Function not found in childMethod lookup:', func);
+	    throw new Error('Function not found in childMethod lookup: ' + func);
+	    return;
+	  }
 	
-	    var exec = funcRef(data);
+	  var exec = funcRef(data);
 	
-	    if (!exec.subscribe) {
-	        return _rx2.default.Observable.just(exec);
-	    } else return exec.first();
+	  if (!exec.subscribe) {
+	    return _rx2.default.Observable.just(exec);
+	  } else return exec.first();
 	}
 	
 	/*
-		@param numWorkers number of cpus
-		@param entryFun the master entry function
-		@param options options object
+	@param numWorkers number of cpus
+	@param entryFun the master entry function
+	@param options options object
 	*/
-	function _entry(numWorkers, entryFun, childMethods, options) {
-	    options = options || {};
-	    if (typeof numWorkers === 'function') {
-	        childMethods = entryFun;
-	        entryFun = numWorkers;
-	        var cpus = __webpack_require__(5).cpus().length;
-	        numWorkers = cpus;
-	    }
+	function _entry(entryFun, childMethods) {
+	  var _this2 = this;
 	
-	    var childEntries = this.childEntries;
-	    _lodash2.default.forEach(childMethods, function (v, k) {
-	        if (v && (v.subscribe || typeof v === 'function')) childEntries[k] = v;
-	    });
+	  var options = this._options;
 	
-	    var isMaster = this._options.isMaster || this.sys.isMaster;
+	  var childEntries = this.childEntries;
+	  _lodash2.default.forEach(childMethods, function (v, k) {
+	    if (v && (v.subscribe || typeof v === 'function')) childEntries[k] = v;
+	  });
+	
+	  var isMasterCheck = this._options.isMaster ? function (x) {
+	    return true;
+	  } : this.sys.isMasterCheck;
+	  //const isMaster = this._options.isMaster || this.sys.isMaster;
+	  isMasterCheck(options, function (isMaster) {
 	
 	    // Child entry point
 	    if (!isMaster) {
-	        this.setupChild(this, this.work, options);
-	        return;
+	      _this2.setupChild(_this2, _this2.work, options);
+	      return;
 	    }
 	
 	    // Master entry point
 	    if (isMaster && typeof entryFun === 'function') {
-	        this.startWorkers(this, numWorkers, entryFun, options);
+	      _this2.startWorkers(_this2, entryFun, options);
 	    }
+	  });
 	}
 	
 	function _getWorkers() {
-	    return this.workers;
+	  return this.workers;
 	}
 	
 	/*
-		@param funcName function to invoke
-		@param nodeSelector (optional) (function | string | int) used to pick node. If function, the value is the stream object and the return is (string | int).
+	@param funcName function to invoke
+	@param nodeSelector (optional) (function | string | int) used to pick node. If function, the value is the stream object and the return is (string | int).
 	*/
 	function _clusterMap(that, funcName, nodeSelector) {
-	    var key = null;
-	    if (nodeSelector !== undefined && nodeSelector !== null && typeof nodeSelector !== 'function') {
-	        key = Number.isInteger(nodeSelector) ? nodeSelector : (0, _stringHash2.default)(nodeSelector.toString());
-	        nodeSelector = null;
-	    }
-	    var workers = that.workers;
-	    //const that = this;
-	    return this.flatMap(function (data) {
-	        return _rx2.default.Observable.create(function (obs) {
-	            if (nodeSelector) {
-	                var nodeKey = nodeSelector(data);
-	                key = Number.isInteger(nodeKey) ? nodeKey : (0, _stringHash2.default)(nodeKey.toString());
-	            }
+	  var key = null;
+	  if (nodeSelector !== undefined && nodeSelector !== null && typeof nodeSelector !== 'function') {
+	    key = Number.isInteger(nodeSelector) ? nodeSelector : (0, _stringHash2.default)(nodeSelector.toString());
+	    nodeSelector = null;
+	  }
+	  var workers = that.workers;
+	  //const that = this;
+	  return this.flatMap(function (data) {
+	    return _rx2.default.Observable.create(function (obs) {
+	      if (nodeSelector) {
+	        var nodeKey = nodeSelector(data);
+	        key = Number.isInteger(nodeKey) ? nodeKey : (0, _stringHash2.default)(nodeKey.toString());
+	      }
 	
-	            var workerIndex = key ? key % workers.length : that.n++ % workers.length;
-	            //console.log(workerIndex, n, workers.length);
-	            //n++;
-	            //if( n === Number.MAX_SAFE_INTEGER) x = Number.MIN_SAFE_INTEGER; // should be safe
-	            //console.log(workers.length, workerIndex, x);
-	            var worker = workers[workerIndex];
+	      var workerIndex = key ? key % workers.length : that.n++ % workers.length;
+	      //console.log(workerIndex, n, workers.length);
+	      //n++;
+	      //if( n === Number.MAX_SAFE_INTEGER) x = Number.MIN_SAFE_INTEGER; // should be safe
+	      //console.log(workers.length, workerIndex, x);
+	      var worker = workers[workerIndex];
 	
-	            worker.jobIndex = worker.jobIndex || 0;
-	            var jobIndex = worker.jobIndex;
-	            worker.jobIndex++;
+	      worker.jobIndex = worker.jobIndex || 0;
+	      var jobIndex = worker.jobIndex;
+	      worker.jobIndex++;
 	
-	            that.sys.clusterMapObs(that, obs, data, funcName, jobIndex, worker);
-	        });
+	      that.sys.clusterMapObs(that, obs, data, funcName, jobIndex, worker);
 	    });
+	  });
 	};
 
 /***/ },
@@ -248,7 +251,9 @@
 	  this.setupChild = _setupChild.bind(this);
 	  this.startWorkers = _startWorkers.bind(this);
 	  this.killall = _killall.bind(this);
-	  this.isMaster = _cluster2.default.isMaster;
+	  this.isMasterCheck = function (options, cb) {
+	    return cb(_cluster2.default.isMaster);
+	  };
 	}
 	
 	function _killall(self) {
@@ -279,7 +284,8 @@
 	  }); // push work unto task stream
 	}
 	
-	function _startWorkers(self, numWorkers, onReady, options) {
+	function _startWorkers(self, onReady, options) {
+	  var numWorkers = options.spread || __webpack_require__(5).cpus().length;
 	  // cluster manager
 	  var n = 0;
 	  var workers = self.workers;
