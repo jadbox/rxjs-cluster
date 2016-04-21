@@ -13,8 +13,8 @@ function _killall(self) {
   _.forEach(self.workers, x => x.kill());
 }
 
-function _setupChild(self, options) {
-  self.work.concatMap(self.childWork, (y, x) => ({
+function _setupChild(self, work, options) {
+  work.concatMap(self.childWork, (y, x) => ({
       data: x,
       id: y.id
   }))
@@ -28,7 +28,7 @@ function _setupChild(self, options) {
   )
 
   process.on('message', function onChildMessage(x) {
-    self.work.onNext(x);
+    work.onNext(x);
   }); // push work unto task stream
 }
 

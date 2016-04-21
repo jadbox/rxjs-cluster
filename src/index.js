@@ -72,7 +72,7 @@ function _entry(numWorkers, entryFun, childMethods, options) {
 
     // Child entry point
     if (!isMaster) {
-        this.setupChild(this, options);
+        this.setupChild(this, this.work, options);
         return;
     }
 
@@ -81,7 +81,6 @@ function _entry(numWorkers, entryFun, childMethods, options) {
         this.startWorkers(this, numWorkers, entryFun, options);
     }
 }
-
 
 function _getWorkers() {
     return this.workers;

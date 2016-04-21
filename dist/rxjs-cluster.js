@@ -143,7 +143,7 @@
 	
 	    // Child entry point
 	    if (!isMaster) {
-	        this.setupChild(this, options);
+	        this.setupChild(this, this.work, options);
 	        return;
 	    }
 	
@@ -257,8 +257,8 @@
 	  });
 	}
 	
-	function _setupChild(self, options) {
-	  self.work.concatMap(self.childWork, function (y, x) {
+	function _setupChild(self, work, options) {
+	  work.concatMap(self.childWork, function (y, x) {
 	    return {
 	      data: x,
 	      id: y.id
@@ -275,7 +275,7 @@
 	  });
 	
 	  process.on('message', function onChildMessage(x) {
-	    self.work.onNext(x);
+	    work.onNext(x);
 	  }); // push work unto task stream
 	}
 	
