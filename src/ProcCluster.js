@@ -32,11 +32,11 @@ function _setupChild(self, work, options) {
   }); // push work unto task stream
 }
 
-function _startWorkers(self, onReady, options) {
+function _startWorkers(self, workers, onReady, options) {
   const numWorkers = options.spread || require('os').cpus().length;
   // cluster manager
   var n = 0;
-  const workers = self.workers;
+  //const workers = self.workers;
 
   cluster.setupMaster({
     silent:false

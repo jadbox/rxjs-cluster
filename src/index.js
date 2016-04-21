@@ -75,7 +75,7 @@ function _entry(entryFun, childMethods) {
 
     // Master entry point
     if (isMaster && typeof entryFun === 'function') {
-      this.startWorkers(this, entryFun, options);
+      this.startWorkers(this, this.workers, entryFun, options);
     }
   });
 }
