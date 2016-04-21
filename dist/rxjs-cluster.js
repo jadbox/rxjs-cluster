@@ -55,10 +55,6 @@
 	
 	var _rx2 = _interopRequireDefault(_rx);
 	
-	var _cluster = __webpack_require__(2);
-	
-	var _cluster2 = _interopRequireDefault(_cluster);
-	
 	var _stringHash = __webpack_require__(3);
 	
 	var _stringHash2 = _interopRequireDefault(_stringHash);
@@ -67,106 +63,47 @@
 	
 	var _lodash2 = _interopRequireDefault(_lodash);
 	
+	var _ProcCluster = __webpack_require__(6);
+	
+	var _ProcCluster2 = _interopRequireDefault(_ProcCluster);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	var Observable = _rx2.default.Observable;
 	var observableProto = Observable.prototype;
 	
 	function Cluster(options) {
+	    var _this = this;
+	
 	    this.workers = [];
 	    this.childEntries = {};
-	    this._options = options || {};
+	    this._options = options = options || {};
+	    if (!options.system) options.system = new _ProcCluster2.default();
+	    var sys = this.sys = options.system;
+	
 	    this.n = 0; // round-robin scheduling
 	    this.work = new _rx2.default.Subject(); // Children work
 	
 	    var that = this;
-	    this.startWorkers = _startWorkers.bind(this);
+	    this.startWorkers = sys.startWorkers;
 	    this.clusterMap = function (x, y, z) {
 	        var ___clusterMap = _clusterMap.bind(this);
 	        return ___clusterMap(that, x, y, z);
 	    };
-	    this.setupChild = _setupChild.bind(this);
+	
+	    this.setupChild = sys.setupChild;
 	    this.childWork = _childWork.bind(this);
 	    this.entry = _entry.bind(this);
 	    this.getWorkers = _getWorkers.bind(this);
-	    this.killall = _killall.bind(this);
+	    this.killall = function (x) {
+	        return sys.killall(_this);
+	    };
 	}
 	
-	function _startWorkers(numWorkers, onReady, options) {
-	    // cluster manager
-	    var n = 0;
-	    var workers = this.workers;
-	
-	    _cluster2.default.setupMaster({
-	        silent: false
-	    });
-	
-	    _cluster2.default.on('listening', function (worker, address) {
-	        console.log('A worker is now connected to ' + address.address + ':' + address.port);
-	    });
-	
-	    _cluster2.default.on('online', function (worker) {
-	        if (n === numWorkers) {
-	            console.log('cluster: All workers online');
-	            onReady();
-	            return;
-	        }
-	        console.log('cluster: Worker ' + worker.process.pid + ' is online');
-	        if (worker.setMaxListeners) worker.setMaxListeners(0);
-	        workers.push(worker);
-	        n++;
-	        //worker.on('message', x => console.log('worker: ', x));
-	    });
-	
-	    _cluster2.default.on('error', function (x) {
-	        throw new Error(x);
-	    });
-	
-	    /*cluster.on('disconnect', function(x) {
-	      console.log('disconnect');
-	      throw new Error(x)
-	    });
-	     cluster.on('exit', function(x) {
-	      console.log('exit');
-	      throw new Error(x)
-	    });*/
-	
-	    for (var i = 0; i <= numWorkers; i++) {
-	        var f = _cluster2.default.fork();
-	        //console.log('f', f.process.pid)
-	        if (f.process.stdout) f.process.stdout.on('data', function (data) {
-	            // output from the child process
-	            console.log('>>> ' + data);
-	        });
-	    }
-	}
-	
-	function _setupChild(options) {
-	    this.work.concatMap(this.childWork, function (y, x) {
-	        return {
-	            data: x,
-	            id: y.id
-	        };
-	    }).subscribe(function (_ref) {
-	        var data = _ref.data;
-	        var id = _ref.id;
-	        return process.send({
-	            rdata: data,
-	            id: id
-	        });
-	    }, function (x) {
-	        return console.log('Child ' + process.pid + ' err', x);
-	    });
-	    var that = this;
-	    process.on('message', function onChildMessage(x) {
-	        that.work.onNext(x);
-	    }); // push work unto task stream
-	}
-	
-	function _childWork(_ref2) {
-	    var data = _ref2.data;
-	    var id = _ref2.id;
-	    var func = _ref2.func;
+	function _childWork(_ref) {
+	    var data = _ref.data;
+	    var id = _ref.id;
+	    var func = _ref.func;
 	
 	    var funcRef = this.childEntries[func];
 	
@@ -202,28 +139,22 @@
 	        if (v && (v.subscribe || typeof v === 'function')) childEntries[k] = v;
 	    });
 	
-	    var isMaster = this._options.isMaster || _cluster2.default.isMaster;
+	    var isMaster = this._options.isMaster || this.sys.isMaster;
 	
 	    // Child entry point
 	    if (!isMaster) {
-	        this.setupChild(options);
+	        this.setupChild(this, options);
 	        return;
 	    }
 	
 	    // Master entry point
 	    if (isMaster && typeof entryFun === 'function') {
-	        this.startWorkers(numWorkers, entryFun, options);
+	        this.startWorkers(this, numWorkers, entryFun, options);
 	    }
 	}
 	
 	function _getWorkers() {
 	    return this.workers;
-	}
-	
-	function _killall() {
-	    _lodash2.default.forEach(this.workers, function (x) {
-	        return x.kill();
-	    });
 	}
 	
 	/*
@@ -239,7 +170,7 @@
 	    var workers = that.workers;
 	    //const that = this;
 	    return this.flatMap(function (data) {
-	        return _rx2.default.Observable.create(function (o) {
+	        return _rx2.default.Observable.create(function (obs) {
 	            if (nodeSelector) {
 	                var nodeKey = nodeSelector(data);
 	                key = Number.isInteger(nodeKey) ? nodeKey : (0, _stringHash2.default)(nodeKey.toString());
@@ -256,19 +187,7 @@
 	            var jobIndex = worker.jobIndex;
 	            worker.jobIndex++;
 	
-	            worker.on('message', function handler(_ref3) {
-	                var rdata = _ref3.rdata;
-	                var id = _ref3.id;
-	
-	                if (id !== jobIndex) return; // ignore
-	                o.onNext(rdata);
-	                o.onCompleted();
-	                worker.removeListener('message', handler);
-	            });
-	            worker.send({
-	                data: data, id: jobIndex,
-	                func: funcName
-	            });
+	            that.sys.clusterMapObs(that, obs, data, funcName, jobIndex, worker);
 	        });
 	    });
 	};
@@ -302,6 +221,128 @@
 /***/ function(module, exports) {
 
 	module.exports = require("os");
+
+/***/ },
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = ProcCluster;
+	
+	var _cluster = __webpack_require__(2);
+	
+	var _cluster2 = _interopRequireDefault(_cluster);
+	
+	var _lodash = __webpack_require__(4);
+	
+	var _lodash2 = _interopRequireDefault(_lodash);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function ProcCluster() {
+	  this.clusterMapObs = _clusterMapObs.bind(this);
+	  this.setupChild = _setupChild.bind(this);
+	  this.startWorkers = _startWorkers.bind(this);
+	  this.killall = _killall.bind(this);
+	  this.isMaster = _cluster2.default.isMaster;
+	}
+	
+	function _killall(self) {
+	  _lodash2.default.forEach(self.workers, function (x) {
+	    return x.kill();
+	  });
+	}
+	
+	function _setupChild(self, options) {
+	  self.work.concatMap(self.childWork, function (y, x) {
+	    return {
+	      data: x,
+	      id: y.id
+	    };
+	  }).subscribe(function (_ref) {
+	    var data = _ref.data;
+	    var id = _ref.id;
+	    return process.send({
+	      rdata: data,
+	      id: id
+	    });
+	  }, function (x) {
+	    return console.log('Child ' + process.pid + ' err', x);
+	  });
+	
+	  process.on('message', function onChildMessage(x) {
+	    self.work.onNext(x);
+	  }); // push work unto task stream
+	}
+	
+	function _startWorkers(self, numWorkers, onReady, options) {
+	  // cluster manager
+	  var n = 0;
+	  var workers = self.workers;
+	
+	  _cluster2.default.setupMaster({
+	    silent: false
+	  });
+	
+	  _cluster2.default.on('listening', function (worker, address) {
+	    console.log('A worker is now connected to ' + address.address + ':' + address.port);
+	  });
+	
+	  _cluster2.default.on('online', function (worker) {
+	    if (n === numWorkers) {
+	      console.log('cluster: All workers online');
+	      onReady();
+	      return;
+	    }
+	    console.log('cluster: Worker ' + worker.process.pid + ' is online');
+	    if (worker.setMaxListeners) worker.setMaxListeners(0);
+	    workers.push(worker);
+	    n++;
+	    //worker.on('message', x => console.log('worker: ', x));
+	  });
+	
+	  _cluster2.default.on('error', function (x) {
+	    throw new Error(x);
+	  });
+	
+	  /*cluster.on('disconnect', function(x) {
+	    console.log('disconnect');
+	    throw new Error(x)
+	  });
+	   cluster.on('exit', function(x) {
+	    console.log('exit');
+	    throw new Error(x)
+	  });*/
+	
+	  for (var i = 0; i <= numWorkers; i++) {
+	    var f = _cluster2.default.fork();
+	    //console.log('f', f.process.pid)
+	    if (f.process.stdout) f.process.stdout.on('data', function (data) {
+	      // output from the child process
+	      console.log('>>> ' + data);
+	    });
+	  }
+	}
+	
+	function _clusterMapObs(self, obs, data, funcName, jobIndex, worker) {
+	  worker.on('message', function handler(_ref2) {
+	    var rdata = _ref2.rdata;
+	    var id = _ref2.id;
+	
+	    if (id !== jobIndex) return; // ignore
+	    obs.onNext(rdata);
+	    obs.onCompleted();
+	    worker.removeListener('message', handler);
+	  });
+	  worker.send({
+	    data: data, id: jobIndex,
+	    func: funcName
+	  });
+	}
 
 /***/ }
 /******/ ])));
