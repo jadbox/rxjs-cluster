@@ -1,56 +1,85 @@
-// Rx global hunting
-// Todo: remove in favor of bind?
-var objectTypes = {
-    'function': true,
-    'object': true
-};
-
-var root = (objectTypes[typeof window] && window) || this,
-    freeGlobal = objectTypes[typeof global] && global;
-
-if (freeGlobal && (freeGlobal.global === freeGlobal || freeGlobal.window === freeGlobal))
-    root = freeGlobal;
-
-root = root || global || window || this;
-const Rx = root.Rx ||
-    require('rx');
-
-// Main
-const cluster = require('cluster');
-const hash = require('string-hash');
-const _ = require('lodash');
+import Rx from 'rx';
+import cluster from 'cluster';
+import hash from 'string-hash';
+import _ from 'lodash';
 
 const Observable = Rx.Observable;
 const observableProto = Observable.prototype;
 
-const workers = [];
-const childEntries = {};
+export default function Cluster(options) {
+  this.workers = [];
+  this.childEntries = {};
+  this._options = options || {};
+  this.n = 0; // round-robin scheduling
+  this.work = new Rx.Subject(); // Children work
 
-function startWorkers(numWorkers, onReady, options) {
+  const that = this;
+  this.startWorkers = _startWorkers.bind(this);
+  this.clusterMap = function(x, y, z) {
+    const ___clusterMap = _clusterMap.bind(this);
+    return ___clusterMap(that, x, y, z)
+  };
+  this.setupChild = _setupChild.bind(this);
+  this.childWork = _childWork.bind(this);
+  this.entry = _entry.bind(this);
+  this.getWorkers = _getWorkers.bind(this);
+  this.killall = _killall.bind(this);
+}
+
+
+
+function _startWorkers(numWorkers, onReady, options) {
     // cluster manager
     var n = 0;
+    const workers = this.workers;
+
+    cluster.setupMaster({
+      silent:false
+    });
+
+    cluster.on('listening', (worker, address) => {
+      console.log(`A worker is now connected to ${address.address}:${address.port}`);
+    });
+
     cluster.on('online', function(worker) {
         if (n === numWorkers) {
+            console.log('cluster: All workers online');
             onReady();
             return;
         }
-        console.log('Worker ' + worker.process.pid + ' is online');
+        console.log('cluster: Worker ' + worker.process.pid + ' is online');
         if (worker.setMaxListeners) worker.setMaxListeners(0);
         workers.push(worker);
         n++;
         //worker.on('message', x => console.log('worker: ', x));
     });
 
+    cluster.on('error', function(x) {
+      throw new Error(x)
+    });
+
+    /*cluster.on('disconnect', function(x) {
+      console.log('disconnect');
+      throw new Error(x)
+    });
+
+    cluster.on('exit', function(x) {
+      console.log('exit');
+      throw new Error(x)
+    });*/
+
     for (var i = 0; i <= numWorkers; i++) {
-        cluster.fork();
+        const f = cluster.fork();
+        //console.log('f', f.process.pid)
+        if(f.process.stdout) f.process.stdout.on('data', function(data) {
+          // output from the child process
+          console.log('>>> '+ data);
+        });
     }
 }
 
-// Children work
-const work = new Rx.Subject();
-
-function setupChild(options) {
-    work.concatMap(childWork, (y, x) => ({
+function _setupChild(options) {
+    this.work.concatMap(this.childWork, (y, x) => ({
         data: x,
         id: y.id
     }))
@@ -62,16 +91,20 @@ function setupChild(options) {
                 id
             }), (x) => console.log('Child ' + process.pid + ' err', x)
     )
-    process.on('message', x => work.onNext(x)); // push work unto task stream
+    const that = this;
+    process.on('message', function onChildMessage(x) {
+      that.work.onNext(x);
+    }); // push work unto task stream
 }
 
-function childWork({
+function _childWork({
     data, id, func
 }) {
-    const funcRef = childEntries[func];
+    const funcRef = this.childEntries[func];
 
     if (!funcRef) {
         console.log('Function not found in childMethod lookup:', func)
+        throw new Error('Function not found in childMethod lookup: '+ func);
         return;
     }
 
@@ -87,8 +120,7 @@ function childWork({
 	@param entryFun the master entry function
 	@param options options object
 */
-export
-function entry(numWorkers, entryFun, childMethods, options) {
+function _entry(numWorkers, entryFun, childMethods, options) {
     options = options || {};
     if (typeof numWorkers === 'function') {
         childMethods = entryFun;
@@ -98,53 +130,54 @@ function entry(numWorkers, entryFun, childMethods, options) {
 
     }
 
+    const childEntries = this.childEntries;
     _.forEach(childMethods, (v, k) => {
         if (v && (v.subscribe || typeof v === 'function')) childEntries[k] = v;
     });
 
+    const isMaster = this._options.isMaster || cluster.isMaster;
+
     // Child entry point
-    if (!cluster.isMaster) {
-        setupChild(options);
+    if (!isMaster) {
+        this.setupChild(options);
         return;
     }
 
     // Master entry point
-    if (cluster.isMaster && typeof entryFun === 'function') {
-        startWorkers(numWorkers, entryFun, options);
+    if (isMaster && typeof entryFun === 'function') {
+        this.startWorkers(numWorkers, entryFun, options);
     }
 }
 
-export
-function getWorkers() {
-    return workers;
+
+function _getWorkers() {
+    return this.workers;
 }
 
-export
-function killall() {
-    _.forEach(workers, x => x.kill());
+
+function _killall() {
+    _.forEach(this.workers, x => x.kill());
 }
 
-var n = 0; // round-robin scheduling
 /*
 	@param funcName function to invoke
 	@param nodeSelector (optional) (function | string | int) used to pick node. If function, the value is the stream object and the return is (string | int).
 */
-Observable.clusterMap =
-    observableProto.clusterMap =
-    function(funcName, nodeSelector) {
+function _clusterMap(that, funcName, nodeSelector) {
     	let key = null;
     	if(nodeSelector !== undefined && nodeSelector !== null && typeof nodeSelector !== 'function') {
-    		console.log('nodeSelector', nodeSelector)
     		key = Number.isInteger(nodeSelector) ? nodeSelector : hash(nodeSelector.toString());
     		nodeSelector = null;
     	}
-
-        return this.flatMap(data => Rx.Observable.create(function(o) {
+      const workers = that.workers;
+      //const that = this;
+      return this.flatMap(data => Rx.Observable.create(o => {
             if (nodeSelector) {
             	const nodeKey = nodeSelector(data);
                 key = Number.isInteger(nodeKey) ? nodeKey : hash(nodeKey.toString());
             }
-            const workerIndex = key ? (key % workers.length) : (n++ % workers.length);
+
+            const workerIndex = key ? (key % workers.length) : (that.n++ % workers.length);
             //console.log(workerIndex, n, workers.length);
             //n++;
             //if( n === Number.MAX_SAFE_INTEGER) x = Number.MIN_SAFE_INTEGER; // should be safe
@@ -159,17 +192,14 @@ Observable.clusterMap =
                 rdata, id
             }) {
                 if (id !== jobIndex) return; // ignore
-                worker.removeListener('message', handler);
                 o.onNext(rdata);
                 o.onCompleted();
-            })
+                worker.removeListener('message', handler);
+            });
             worker.send({
                 data, id: jobIndex,
                 func: funcName
             });
 
-        }))
+    }))
 };
-
-export
-var clusterMap = observableProto.clusterMap;

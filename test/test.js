@@ -1,5 +1,10 @@
-var Rx = require('rx');
-var rc = require('../dist/rxjs-cluster.js');
+import Rx from 'rx';
+import RC from '../src';
+import assert from 'assert';
+import cluster from 'cluster';
+
+const pc = new RC( {  } );
+const clusterMap = pc.clusterMap;
 
 var Observable = Rx.Observable;
 
@@ -15,59 +20,112 @@ function childTest$(x) {
 
 function master() {
 	console.log('master');
-	Observable.from(['Jonathan', 'James', 'Edwin'])
-		.clusterMap('childTest')
-		.subscribe( 
+	return Observable.from(['Jonathan', 'James', 'Edwin'])
+		::clusterMap('childTest')
+		.do( x => console.log('1', x))
+		/*.subscribe(
 			function(x) { console.log(x); },
 			function(x) { console.log('Err ' + x); },
-			function() { master2(); }
-		);
+			function() { }
+		);*/
 
-	
+
 }
 
 function master2() {
 	console.log('master2');
-	Observable.from(['Jonathan', 'James', 'Edwin'])
-		.clusterMap('childTest$')
-		.subscribe( 
+	return Observable.from(['Jonathan', 'James', 'Edwin'])
+		::clusterMap('childTest$')
+		.do( x => console.log('2', x))
+		/*.subscribe(
 			function(x) { console.log(x); },
 			function(x) { console.log('Err ' + x); },
-			function() { 
-				master3();
+			function() {
+				//master3();
 			}
-		);
+		);*/
 }
 
 function master3() {
 	console.log('master3');
-	Observable.from(['Jonathan', 'James', 'Edwin'])
-		.clusterMap('childTest', 199) // use node index of hash id 199
-		.subscribe( 
+	return Observable.from(['Jonathan', 'James', 'Edwin'])
+		::clusterMap('childTest', 199) // use node index of hash id 199
+		.do( x => console.log('3', x))
+		/*.subscribe(
 			function(x) { console.log(x); },
 			function(x) { console.log('Err ' + x); },
-			function() { console.log('Completed'); master4(); }
-		);
+			function() {
+				console.log('Completed 4');
+				//master4();
+			}
+		);*/
 
-	
+
 }
 
 function master4() {
 	console.log('master4');
-	Observable.from(['Jonathan', 'James', 'Edwin', 'Edwin', 'Edwin', 'Flipper'])
-		.clusterMap('childTest$', x=>x) // use the name as the node index hash
-		.subscribe( 
+	return Observable.from(['Jonathan', 'James', 'Edwin', 'Edwin', 'Edwin', 'Flipper'])
+		::clusterMap('childTest$', x=>x) // use the name as the node index hash
+		.do( x => console.log('4', x))
+		/*.subscribe(
 			function(x) { console.log(x); },
 			function(x) { console.log('Err ' + x); },
-			function() { 
-				console.log('Completed'); 
-				rc.killall(); // kill all workers, clusterMap will no longer work
+			function() {
+				console.log('Completed');
+				//rc.killall(); // kill all workers, clusterMap will no longer work
+				//_done();
+				//done();
 			}
-		);
+		);*/
 }
 
+function start() {
+	_done();
+	console.log('--', cluster.isMaster)
+}
+
+if(cluster.isMaster) {
+	describe('## rx master', function() {
+		this.timeout(9900);
+		before(function(done) {
+      //  setTimeout(done, 1000);
+			_done = done;
+    });
+
+				it('master entry', function (done) {
+					console.log('STARTING')
+					master().concatMap(master2).toArray()
+					.concatMap(master3).toArray()
+					.concatMap(master4).toArray()
+					.subscribe(
+						x=>x
+						,x=> { throw new Error(x) }
+						,x => {
+						console.log('completed')
+						pc.killall(); // kill all workers, clusterMap will no longer work
+						done();
+					})
+					//_done = done;
+				})
+	})
+}
+else {
+	describe('## rx client', function() {
+		this.timeout(9900);
+		before(function(done) {
+      //  setTimeout(done, 1000);
+
+    });
+		it('client entry', function (done) {
+		});
+	});
+}
+
+pc.entry(3, start, { childTest: childTest, childTest$: childTest$ });
+
 // Define number of workers, master entry point, worker functions
-rc.entry(3, master, { childTest: childTest, childTest$: childTest$ });
+var _done;
 
 // Or define leave the default number of workers to # of cpu cores
 // rc.entry(master, { childTest: childTest, childTest$: childTest$ });

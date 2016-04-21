@@ -49,63 +49,100 @@
 	Object.defineProperty(exports, "__esModule", {
 	    value: true
 	});
+	exports.default = Cluster;
 	
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+	var _rx = __webpack_require__(1);
 	
-	exports.entry = entry;
-	exports.getWorkers = getWorkers;
-	exports.killall = killall;
-	// Rx global hunting
-	// Todo: remove in favor of bind?
-	var objectTypes = {
-	    'function': true,
-	    'object': true
-	};
+	var _rx2 = _interopRequireDefault(_rx);
 	
-	var root = objectTypes[typeof window === 'undefined' ? 'undefined' : _typeof(window)] && window || undefined,
-	    freeGlobal = objectTypes[typeof global === 'undefined' ? 'undefined' : _typeof(global)] && global;
+	var _cluster = __webpack_require__(2);
 	
-	if (freeGlobal && (freeGlobal.global === freeGlobal || freeGlobal.window === freeGlobal)) root = freeGlobal;
+	var _cluster2 = _interopRequireDefault(_cluster);
 	
-	root = root || global || window || undefined;
-	var Rx = root.Rx || __webpack_require__(1);
+	var _stringHash = __webpack_require__(3);
 	
-	// Main
-	var cluster = __webpack_require__(2);
-	var hash = __webpack_require__(3);
-	var _ = __webpack_require__(4);
+	var _stringHash2 = _interopRequireDefault(_stringHash);
 	
-	var Observable = Rx.Observable;
+	var _lodash = __webpack_require__(4);
+	
+	var _lodash2 = _interopRequireDefault(_lodash);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	var Observable = _rx2.default.Observable;
 	var observableProto = Observable.prototype;
 	
-	var workers = [];
-	var childEntries = {};
+	function Cluster(options) {
+	    this.workers = [];
+	    this.childEntries = {};
+	    this._options = options || {};
+	    this.n = 0; // round-robin scheduling
+	    this.work = new _rx2.default.Subject(); // Children work
 	
-	function startWorkers(numWorkers, onReady, options) {
+	    var that = this;
+	    this.startWorkers = _startWorkers.bind(this);
+	    this.clusterMap = function (x, y, z) {
+	        var ___clusterMap = _clusterMap.bind(this);
+	        return ___clusterMap(that, x, y, z);
+	    };
+	    this.setupChild = _setupChild.bind(this);
+	    this.childWork = _childWork.bind(this);
+	    this.entry = _entry.bind(this);
+	    this.getWorkers = _getWorkers.bind(this);
+	    this.killall = _killall.bind(this);
+	}
+	
+	function _startWorkers(numWorkers, onReady, options) {
 	    // cluster manager
 	    var n = 0;
-	    cluster.on('online', function (worker) {
+	    var workers = this.workers;
+	
+	    _cluster2.default.setupMaster({
+	        silent: false
+	    });
+	
+	    _cluster2.default.on('listening', function (worker, address) {
+	        console.log('A worker is now connected to ' + address.address + ':' + address.port);
+	    });
+	
+	    _cluster2.default.on('online', function (worker) {
 	        if (n === numWorkers) {
+	            console.log('cluster: All workers online');
 	            onReady();
 	            return;
 	        }
-	        console.log('Worker ' + worker.process.pid + ' is online');
+	        console.log('cluster: Worker ' + worker.process.pid + ' is online');
 	        if (worker.setMaxListeners) worker.setMaxListeners(0);
 	        workers.push(worker);
 	        n++;
 	        //worker.on('message', x => console.log('worker: ', x));
 	    });
 	
+	    _cluster2.default.on('error', function (x) {
+	        throw new Error(x);
+	    });
+	
+	    /*cluster.on('disconnect', function(x) {
+	      console.log('disconnect');
+	      throw new Error(x)
+	    });
+	     cluster.on('exit', function(x) {
+	      console.log('exit');
+	      throw new Error(x)
+	    });*/
+	
 	    for (var i = 0; i <= numWorkers; i++) {
-	        cluster.fork();
+	        var f = _cluster2.default.fork();
+	        //console.log('f', f.process.pid)
+	        if (f.process.stdout) f.process.stdout.on('data', function (data) {
+	            // output from the child process
+	            console.log('>>> ' + data);
+	        });
 	    }
 	}
 	
-	// Children work
-	var work = new Rx.Subject();
-	
-	function setupChild(options) {
-	    work.concatMap(childWork, function (y, x) {
+	function _setupChild(options) {
+	    this.work.concatMap(this.childWork, function (y, x) {
 	        return {
 	            data: x,
 	            id: y.id
@@ -120,27 +157,29 @@
 	    }, function (x) {
 	        return console.log('Child ' + process.pid + ' err', x);
 	    });
-	    process.on('message', function (x) {
-	        return work.onNext(x);
+	    var that = this;
+	    process.on('message', function onChildMessage(x) {
+	        that.work.onNext(x);
 	    }); // push work unto task stream
 	}
 	
-	function childWork(_ref2) {
+	function _childWork(_ref2) {
 	    var data = _ref2.data;
 	    var id = _ref2.id;
 	    var func = _ref2.func;
 	
-	    var funcRef = childEntries[func];
+	    var funcRef = this.childEntries[func];
 	
 	    if (!funcRef) {
 	        console.log('Function not found in childMethod lookup:', func);
+	        throw new Error('Function not found in childMethod lookup: ' + func);
 	        return;
 	    }
 	
 	    var exec = funcRef(data);
 	
 	    if (!exec.subscribe) {
-	        return Rx.Observable.just(exec);
+	        return _rx2.default.Observable.just(exec);
 	    } else return exec.first();
 	}
 	
@@ -149,8 +188,7 @@
 		@param entryFun the master entry function
 		@param options options object
 	*/
-	
-	function entry(numWorkers, entryFun, childMethods, options) {
+	function _entry(numWorkers, entryFun, childMethods, options) {
 	    options = options || {};
 	    if (typeof numWorkers === 'function') {
 	        childMethods = entryFun;
@@ -159,52 +197,55 @@
 	        numWorkers = cpus;
 	    }
 	
-	    _.forEach(childMethods, function (v, k) {
+	    var childEntries = this.childEntries;
+	    _lodash2.default.forEach(childMethods, function (v, k) {
 	        if (v && (v.subscribe || typeof v === 'function')) childEntries[k] = v;
 	    });
 	
+	    var isMaster = this._options.isMaster || _cluster2.default.isMaster;
+	
 	    // Child entry point
-	    if (!cluster.isMaster) {
-	        setupChild(options);
+	    if (!isMaster) {
+	        this.setupChild(options);
 	        return;
 	    }
 	
 	    // Master entry point
-	    if (cluster.isMaster && typeof entryFun === 'function') {
-	        startWorkers(numWorkers, entryFun, options);
+	    if (isMaster && typeof entryFun === 'function') {
+	        this.startWorkers(numWorkers, entryFun, options);
 	    }
 	}
 	
-	function getWorkers() {
-	    return workers;
+	function _getWorkers() {
+	    return this.workers;
 	}
 	
-	function killall() {
-	    _.forEach(workers, function (x) {
+	function _killall() {
+	    _lodash2.default.forEach(this.workers, function (x) {
 	        return x.kill();
 	    });
 	}
 	
-	var n = 0; // round-robin scheduling
 	/*
 		@param funcName function to invoke
 		@param nodeSelector (optional) (function | string | int) used to pick node. If function, the value is the stream object and the return is (string | int).
 	*/
-	Observable.clusterMap = observableProto.clusterMap = function (funcName, nodeSelector) {
+	function _clusterMap(that, funcName, nodeSelector) {
 	    var key = null;
 	    if (nodeSelector !== undefined && nodeSelector !== null && typeof nodeSelector !== 'function') {
-	        console.log('nodeSelector', nodeSelector);
-	        key = Number.isInteger(nodeSelector) ? nodeSelector : hash(nodeSelector.toString());
+	        key = Number.isInteger(nodeSelector) ? nodeSelector : (0, _stringHash2.default)(nodeSelector.toString());
 	        nodeSelector = null;
 	    }
-	
+	    var workers = that.workers;
+	    //const that = this;
 	    return this.flatMap(function (data) {
-	        return Rx.Observable.create(function (o) {
+	        return _rx2.default.Observable.create(function (o) {
 	            if (nodeSelector) {
 	                var nodeKey = nodeSelector(data);
-	                key = Number.isInteger(nodeKey) ? nodeKey : hash(nodeKey.toString());
+	                key = Number.isInteger(nodeKey) ? nodeKey : (0, _stringHash2.default)(nodeKey.toString());
 	            }
-	            var workerIndex = key ? key % workers.length : n++ % workers.length;
+	
+	            var workerIndex = key ? key % workers.length : that.n++ % workers.length;
 	            //console.log(workerIndex, n, workers.length);
 	            //n++;
 	            //if( n === Number.MAX_SAFE_INTEGER) x = Number.MIN_SAFE_INTEGER; // should be safe
@@ -220,9 +261,9 @@
 	                var id = _ref3.id;
 	
 	                if (id !== jobIndex) return; // ignore
-	                worker.removeListener('message', handler);
 	                o.onNext(rdata);
 	                o.onCompleted();
+	                worker.removeListener('message', handler);
 	            });
 	            worker.send({
 	                data: data, id: jobIndex,
@@ -231,8 +272,6 @@
 	        });
 	    });
 	};
-	
-	var clusterMap = exports.clusterMap = observableProto.clusterMap;
 
 /***/ },
 /* 1 */
