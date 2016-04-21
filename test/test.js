@@ -3,11 +3,11 @@ import RC from '../src';
 import assert from 'assert';
 import cluster from 'cluster';
 
-import NetCluster from '../src/NetCluster';
+import {NetSystem} from '../src';
 const params = {};
 
 if(process.env.test==='net') {
-	params.system =  new NetCluster( {
+	params.system =  new NetSystem( {
 		port: process.env.port,
 		clients: ['http://localhost:'+process.env.client + '/']
 	})

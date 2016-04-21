@@ -49,6 +49,7 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+	exports.NetSystem = exports.ProcSystem = undefined;
 	exports.default = Cluster;
 	
 	var _rx = __webpack_require__(1);
@@ -67,11 +68,17 @@
 	
 	var _ProcCluster2 = _interopRequireDefault(_ProcCluster);
 	
+	var _NetCluster = __webpack_require__(7);
+	
+	var _NetCluster2 = _interopRequireDefault(_NetCluster);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	var Observable = _rx2.default.Observable;
 	var observableProto = Observable.prototype;
 	
+	var ProcSystem = exports.ProcSystem = _ProcCluster2.default;
+	var NetSystem = exports.NetSystem = _NetCluster2.default;
 	function Cluster(options) {
 	  var _this = this;
 	
@@ -358,6 +365,176 @@
 /***/ function(module, exports) {
 
 	module.exports = require("os");
+
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = ProcCluster;
+	
+	var _cluster = __webpack_require__(5);
+	
+	var _cluster2 = _interopRequireDefault(_cluster);
+	
+	var _lodash = __webpack_require__(3);
+	
+	var _lodash2 = _interopRequireDefault(_lodash);
+	
+	var _express = __webpack_require__(8);
+	
+	var _express2 = _interopRequireDefault(_express);
+	
+	var _bodyParser = __webpack_require__(9);
+	
+	var _bodyParser2 = _interopRequireDefault(_bodyParser);
+	
+	var _requestJson = __webpack_require__(10);
+	
+	var _requestJson2 = _interopRequireDefault(_requestJson);
+	
+	var _connectTimeout = __webpack_require__(11);
+	
+	var _connectTimeout2 = _interopRequireDefault(_connectTimeout);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	var app = (0, _express2.default)();
+	app.use((0, _connectTimeout2.default)('600s'));
+	app.use(_bodyParser2.default.json());
+	
+	function ProcCluster(options) {
+	  console.log('--WIP--', options);
+	
+	  this.options = Object.assign({
+	    clients: ['http://localhost:8090/'],
+	    port: 8090
+	  }, options || {});
+	  if (!Array.isArray(this.options.clients)) this.options.clients = [this.options.clients];
+	
+	  this.clusterMapObs = _clusterMapObs.bind(this);
+	  this.setupChild = _setupChild.bind(this);
+	  this.startWorkers = _startWorkers.bind(this);
+	  this.killall = _killall.bind(this);
+	  this.isMasterCheck = _isMasterCheck.bind(this);
+	}
+	
+	function _isMasterCheck(options, cb) {
+	  console.log('cluster: listening port:', this.options.port);
+	  var picked = false;
+	
+	  app.get('/be/master/', function (req, res) {
+	    if (picked) {
+	      console.log('cluster: already picked as master');
+	      return;
+	    } else picked = true;
+	    options.isMaster = true;
+	    options.isSlave = false;
+	    console.log('cluster: master elected');
+	    res.send('master elected');
+	    cb(true);
+	  });
+	
+	  app.get('/be/slave/', function (req, res) {
+	    if (picked) {
+	      console.log('cluster: already picked as master');
+	      return;
+	    } else picked = true;
+	    options.isMaster = false;
+	    options.isSlave = true;
+	
+	    console.log('cluster: slave elected');
+	    res.send('slave elected');
+	    cb(false);
+	  });
+	
+	  app.listen(this.options.port);
+	}
+	
+	function _killall(self) {
+	  //_.forEach(self.workers, x => x.kill());
+	}
+	
+	function _setupChild(self, work) {
+	  console.log('_setupChild');
+	  var requests = {};
+	  work.concatMap(self.childWork, function (y, x) {
+	    return {
+	      data: x,
+	      id: y.id
+	    };
+	  }).subscribe(function (_ref) {
+	    var data = _ref.data;
+	    var id = _ref.id;
+	
+	    if (requests[id] === undefined) throw new Error('request id not issued ' + id);
+	    requests[id].send({ data: data, id: id });
+	  }, function (x) {
+	    return console.log('Net Child ' + process.pid + ' err', x);
+	  });
+	
+	  app.post('/work', function (req, res) {
+	    var _req$body = req.body;
+	    var func = _req$body.func;
+	    var data = _req$body.data;
+	    var id = _req$body.id;
+	
+	    var workParams = { func: func, data: data, id: id };
+	    console.log('work recieved', workParams);
+	    requests[id] = res;
+	    work.onNext(workParams);
+	    //res.send('slave elacted'); // TODO
+	  });
+	}
+	
+	function _startWorkers(self, workers, onReady) {
+	  console.log('_startWorkers');
+	  //const spread = self.options.spread;
+	
+	  _lodash2.default.forEach(this.options.clients, function (c) {
+	    var worker = { url: c };
+	    worker.client = _requestJson2.default.createClient(worker.url);
+	    workers.push(worker);
+	  });
+	  console.log('workers', workers);
+	  setTimeout(onReady, 3000);
+	}
+	
+	function _clusterMapObs(self, obs, data, func, id, worker) {
+	  worker.client.post('work', { func: func, data: data, id: id }, function (err, res, body) {
+	    console.log('cluster: master recieved:', err, res.statusCode, body);
+	    obs.onNext(body.data);
+	    obs.onCompleted();
+	  });
+	}
+
+/***/ },
+/* 8 */
+/***/ function(module, exports) {
+
+	module.exports = require("express");
+
+/***/ },
+/* 9 */
+/***/ function(module, exports) {
+
+	module.exports = require("body-parser");
+
+/***/ },
+/* 10 */
+/***/ function(module, exports) {
+
+	module.exports = require("request-json");
+
+/***/ },
+/* 11 */
+/***/ function(module, exports) {
+
+	module.exports = require("connect-timeout");
 
 /***/ }
 /******/ ])));

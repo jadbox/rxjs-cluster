@@ -2,10 +2,13 @@ import Rx from 'rx';
 import hash from 'string-hash';
 import _ from 'lodash';
 import ProcCluster from './ProcCluster'
+import NetCluster from './NetCluster'
 
 const Observable = Rx.Observable;
 const observableProto = Observable.prototype;
 
+export var ProcSystem = ProcCluster;
+export var NetSystem = NetCluster;
 export default function Cluster(options) {
   this.workers = [];
   this.childEntries = {};
