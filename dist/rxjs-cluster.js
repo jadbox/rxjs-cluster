@@ -55,15 +55,15 @@
 	
 	var _rx2 = _interopRequireDefault(_rx);
 	
-	var _stringHash = __webpack_require__(3);
+	var _stringHash = __webpack_require__(2);
 	
 	var _stringHash2 = _interopRequireDefault(_stringHash);
 	
-	var _lodash = __webpack_require__(4);
+	var _lodash = __webpack_require__(3);
 	
 	var _lodash2 = _interopRequireDefault(_lodash);
 	
-	var _ProcCluster = __webpack_require__(6);
+	var _ProcCluster = __webpack_require__(4);
 	
 	var _ProcCluster2 = _interopRequireDefault(_ProcCluster);
 	
@@ -77,11 +77,11 @@
 	
 	  this.workers = [];
 	  this.childEntries = {};
-	  this._options = options = options || {};
-	  if (!options.system) options.system = new _ProcCluster2.default();
-	  //if(!options.spread) options.spread = require('os').cpus().length;
+	  this._options = options = Object.assign({
+	    debug: false
+	  }, options || {});
 	
-	  var sys = this.sys = options.system;
+	  var sys = this.sys = options.system = options.system || new _ProcCluster2.default();
 	
 	  this.n = 0; // round-robin scheduling
 	  this.work = new _rx2.default.Subject(); // Children work
@@ -145,13 +145,13 @@
 	
 	    // Child entry point
 	    if (!isMaster) {
-	      _this2.setupChild(_this2, _this2.work, options);
+	      _this2.setupChild(_this2, _this2.work);
 	      return;
 	    }
 	
 	    // Master entry point
 	    if (isMaster && typeof entryFun === 'function') {
-	      _this2.startWorkers(_this2, _this2.workers, entryFun, options);
+	      _this2.startWorkers(_this2, _this2.workers, entryFun);
 	    }
 	  });
 	}
@@ -205,28 +205,16 @@
 /* 2 */
 /***/ function(module, exports) {
 
-	module.exports = require("cluster");
+	module.exports = require("string-hash");
 
 /***/ },
 /* 3 */
 /***/ function(module, exports) {
 
-	module.exports = require("string-hash");
-
-/***/ },
-/* 4 */
-/***/ function(module, exports) {
-
 	module.exports = require("lodash");
 
 /***/ },
-/* 5 */
-/***/ function(module, exports) {
-
-	module.exports = require("os");
-
-/***/ },
-/* 6 */
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -236,11 +224,11 @@
 	});
 	exports.default = ProcCluster;
 	
-	var _cluster = __webpack_require__(2);
+	var _cluster = __webpack_require__(5);
 	
 	var _cluster2 = _interopRequireDefault(_cluster);
 	
-	var _lodash = __webpack_require__(4);
+	var _lodash = __webpack_require__(3);
 	
 	var _lodash2 = _interopRequireDefault(_lodash);
 	
@@ -262,7 +250,7 @@
 	  });
 	}
 	
-	function _setupChild(self, work, options) {
+	function _setupChild(self, work) {
 	  work.concatMap(self.childWork, function (y, x) {
 	    return {
 	      data: x,
@@ -284,8 +272,9 @@
 	  }); // push work unto task stream
 	}
 	
-	function _startWorkers(self, workers, onReady, options) {
-	  var numWorkers = options.spread || __webpack_require__(5).cpus().length;
+	function _startWorkers(self, workers, onReady) {
+	  var options = self._options;
+	  var numWorkers = options.spread || __webpack_require__(6).cpus().length;
 	  // cluster manager
 	  var n = 0;
 	  //const workers = self.workers;
@@ -349,6 +338,18 @@
 	    func: funcName
 	  });
 	}
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
+	module.exports = require("cluster");
+
+/***/ },
+/* 6 */
+/***/ function(module, exports) {
+
+	module.exports = require("os");
 
 /***/ }
 /******/ ])));

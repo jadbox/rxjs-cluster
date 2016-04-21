@@ -9,11 +9,11 @@ const observableProto = Observable.prototype;
 export default function Cluster(options) {
   this.workers = [];
   this.childEntries = {};
-  this._options = options = options || {};
-  if(!options.system) options.system = new ProcCluster();
-  //if(!options.spread) options.spread = require('os').cpus().length;
+  this._options = options = Object.assign({
+    debug: false
+  }, options || {});
 
-  const sys = this.sys = options.system;
+  const sys = this.sys = options.system = options.system || new ProcCluster();
 
   this.n = 0; // round-robin scheduling
   this.work = new Rx.Subject(); // Children work
@@ -69,13 +69,13 @@ function _entry(entryFun, childMethods) {
 
     // Child entry point
     if (!isMaster) {
-      this.setupChild(this, this.work, options);
+      this.setupChild(this, this.work);
       return;
     }
 
     // Master entry point
     if (isMaster && typeof entryFun === 'function') {
-      this.startWorkers(this, this.workers, entryFun, options);
+      this.startWorkers(this, this.workers, entryFun);
     }
   });
 }

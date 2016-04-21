@@ -10,13 +10,13 @@ app.use(timeout('600s'));
 app.use(bodyParser.json());
 
 export default function ProcCluster(options) {
-  console.log('--WIP--');
-  this.options = options;
-  this.options.url = this.options.url || 'http://localhost:8090/';
-  this.options.port = this.options.port || 8090;
+  console.log('--WIP--', options);
 
-
-  this.clientSend = request.createClient(this.options.url + 'send');
+  this.options = Object.assign({
+    clients: ['http://localhost:8090/'],
+    port: 8090
+  }, options || {});
+  if(!Array.isArray(this.options.clients)) this.options.clients = [ this.options.clients ];
 
   this.clusterMapObs = _clusterMapObs.bind(this);
   this.setupChild = _setupChild.bind(this);
@@ -26,22 +26,33 @@ export default function ProcCluster(options) {
 }
 
 function _isMasterCheck(options, cb) {
-  console.log('listening');
+  console.log('cluster: listening port:', this.options.port);
   let picked = false;
 
-  app.get('/be_master', function(req, res) {
-    if(picked) return;
-    picked = true;
-    console.log('master elacted');
-    res.send('master elacted');
+  app.get('/be/master/', function(req, res) {
+    if(picked) {
+      console.log('cluster: already picked as master');
+      return;
+    }
+    else picked = true;
+    options.isMaster = true;
+    options.isSlave = false;
+    console.log('cluster: master elected');
+    res.send('master elected');
     cb(true);
   });
 
-  app.get('/be_slave', function(req, res) {
-    if(picked) return;
-    picked = true;
-    console.log('slave elacted');
-    res.send('slave elacted');
+  app.get('/be/slave/', function(req, res) {
+    if(picked) {
+      console.log('cluster: already picked as master');
+      return;
+    }
+    else picked = true;
+    options.isMaster = false;
+    options.isSlave = true;
+
+    console.log('cluster: slave elected');
+    res.send('slave elected');
     cb(false);
   });
 
@@ -52,7 +63,9 @@ function _killall(self) {
   //_.forEach(self.workers, x => x.kill());
 }
 
-function _setupChild(self, work, options) {
+function _setupChild(self, work) {
+  console.log('_setupChild')
+  const requests = {};
   work.concatMap(self.childWork, (y, x) => ({
       data: x,
       id: y.id
@@ -60,28 +73,40 @@ function _setupChild(self, work, options) {
       .subscribe(
           ({
               data, id
-          }) => process.send({
-              rdata: data,
-              id
-          }), (x) => console.log('Net Child ' + process.pid + ' err', x)
+          }) => {
+            if(requests[id] === undefined) throw new Error('request id not issued '+id)
+            requests[id].send({data, id});
+        }, (x) => console.log('Net Child ' + process.pid + ' err', x)
   )
 
   app.post('/work', function(req, res) {
-    const x = req.body;
-    work.onNext(x);
-    res.send('slave elacted');
+    const {func, data, id} = req.body;
+    const workParams = {func, data, id};
+    console.log('work recieved', workParams);
+    requests[id] = res;
+    work.onNext(workParams);
+    //res.send('slave elacted'); // TODO
   });
 
 }
 
-function _startWorkers(self, workers, onReady, options) {
-  const spread = options.spread;
+function _startWorkers(self, workers, onReady) {
+  console.log('_startWorkers');
+  //const spread = self.options.spread;
 
+  _.forEach(this.options.clients, c => {
+    const worker = { url: c };
+    worker.client = request.createClient( worker.url );
+    workers.push( worker )
+  });
+  console.log('workers', workers);
+  setTimeout(onReady, 3000);
 }
 
-function _clusterMapObs(self, obs, data, funcName, jobIndex, worker) {
-  this.clientSend.post({method:funcName, data, jobIndex}, x => {
-    obs.onNext(x);
+function _clusterMapObs(self, obs, data, func, id, worker) {
+  worker.client.post('work', {func, data, id}, (err, res, body) => {
+    console.log('cluster: master recieved:', err, res.statusCode, body);
+    obs.onNext(body.data);
     obs.onCompleted();
   })
 }

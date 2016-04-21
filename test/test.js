@@ -3,7 +3,16 @@ import RC from '../src';
 import assert from 'assert';
 import cluster from 'cluster';
 
-const pc = new RC( {  } );
+import NetCluster from '../src/NetCluster';
+const params = {};
+
+if(process.env.test==='net') {
+	params.system =  new NetCluster( {
+		port: process.env.port,
+		clients: ['http://localhost:'+process.env.client + '/']
+	})
+}
+const pc = new RC( params );
 const clusterMap = pc.clusterMap;
 
 var Observable = Rx.Observable;
@@ -87,7 +96,7 @@ function start() {
 
 if(cluster.isMaster) {
 	describe('## rx master', function() {
-		this.timeout(9900);
+		this.timeout(99000);
 		before(function(done) {
       //  setTimeout(done, 1000);
 			_done = done;
@@ -112,7 +121,7 @@ if(cluster.isMaster) {
 }
 else {
 	describe('## rx client', function() {
-		this.timeout(9900);
+		this.timeout(99000);
 		before(function(done) {
       //  setTimeout(done, 1000);
 

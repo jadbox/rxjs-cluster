@@ -13,7 +13,7 @@ function _killall(self) {
   _.forEach(self.workers, x => x.kill());
 }
 
-function _setupChild(self, work, options) {
+function _setupChild(self, work) {
   work.concatMap(self.childWork, (y, x) => ({
       data: x,
       id: y.id
@@ -32,7 +32,8 @@ function _setupChild(self, work, options) {
   }); // push work unto task stream
 }
 
-function _startWorkers(self, workers, onReady, options) {
+function _startWorkers(self, workers, onReady) {
+  const options = self._options;
   const numWorkers = options.spread || require('os').cpus().length;
   // cluster manager
   var n = 0;
