@@ -144,8 +144,8 @@
 	    if (v && (v.subscribe || typeof v === 'function')) childEntries[k] = v;
 	  });
 	
-	  var isMasterEnv = process.env.isMaster === true || this._options.isMaster === true;
-	  var isSlaveEnv = process.env.isSlave === true || this._options.isSlave === true;
+	  var isMasterEnv = process.env.isMaster === 'true' || this._options.isMaster === true;
+	  var isSlaveEnv = process.env.isSlave === 'true' || this._options.isSlave === true;
 	  var isMasterCheck = isMasterEnv ? function (x) {
 	    return true;
 	  } : isSlaveEnv ? function (x) {

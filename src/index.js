@@ -66,8 +66,8 @@ function _entry(entryFun, childMethods) {
     if (v && (v.subscribe || typeof v === 'function')) childEntries[k] = v;
   });
 
-  const isMasterEnv = process.env.isMaster === true || this._options.isMaster === true;
-  const isSlaveEnv = process.env.isSlave === true || this._options.isSlave === true;
+  const isMasterEnv = process.env.isMaster === 'true' || this._options.isMaster === true;
+  const isSlaveEnv = process.env.isSlave === 'true' || this._options.isSlave === true;
   const isMasterCheck = isMasterEnv ? x => true : isSlaveEnv ? x => false : this.sys.isMasterCheck;
 
   //const isMaster = this._options.isMaster || this.sys.isMaster;
