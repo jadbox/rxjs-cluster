@@ -137,6 +137,7 @@
 	function _entry(entryFun, childMethods) {
 	  var _this2 = this;
 	
+	  console.log('cluster: slave/master check');
 	  var options = this._options;
 	
 	  var childEntries = this.childEntries;

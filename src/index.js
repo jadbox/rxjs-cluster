@@ -59,6 +59,7 @@ function _childWork({
 @param options options object
 */
 function _entry(entryFun, childMethods) {
+  console.log('cluster: slave/master check');
   const options = this._options;
 
   const childEntries = this.childEntries;
