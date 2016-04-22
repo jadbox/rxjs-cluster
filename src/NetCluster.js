@@ -82,7 +82,7 @@ function _setupChild(self, work) {
   app.post('/work', function(req, res) {
     const {func, data, id} = req.body;
     const workParams = {func, data, id};
-    console.log('work recieved', workParams);
+    console.log('cluster: work recieved', workParams);
     requests[id] = res;
     work.onNext(workParams);
     //res.send('slave elacted'); // TODO
@@ -104,8 +104,10 @@ function _startWorkers(self, workers, onReady) {
 }
 
 function _clusterMapObs(self, obs, data, func, id, worker) {
+  console.log('cluster: master sending url: '+worker.url+' *' + func + ' id:' + id);
   worker.client.post('work', {func, data, id}, (err, res, body) => {
-    if(self._options) console.log('cluster: master recieved:', err, res.statusCode, body);
+    //if(self._options)
+    console.log('cluster: master recieved:', err, res ? res.statusCode : res, body);
     obs.onNext(body.data);
     obs.onCompleted();
   })

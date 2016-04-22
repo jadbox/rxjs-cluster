@@ -487,7 +487,7 @@
 	    var id = _req$body.id;
 	
 	    var workParams = { func: func, data: data, id: id };
-	    console.log('work recieved', workParams);
+	    console.log('cluster: work recieved', workParams);
 	    requests[id] = res;
 	    work.onNext(workParams);
 	    //res.send('slave elacted'); // TODO
@@ -508,8 +508,10 @@
 	}
 	
 	function _clusterMapObs(self, obs, data, func, id, worker) {
+	  console.log('cluster: master sending url: ' + worker.url + ' *' + func + ' id:' + id);
 	  worker.client.post('work', { func: func, data: data, id: id }, function (err, res, body) {
-	    if (self._options) console.log('cluster: master recieved:', err, res.statusCode, body);
+	    //if(self._options)
+	    console.log('cluster: master recieved:', err, res ? res.statusCode : res, body);
 	    obs.onNext(body.data);
 	    obs.onCompleted();
 	  });
