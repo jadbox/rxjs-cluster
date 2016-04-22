@@ -157,12 +157,14 @@
 	
 	    // Child entry point
 	    if (!isMaster) {
+	      console.log('cluster: slave elected');
 	      _this2.setupChild(_this2, _this2.work);
 	      return;
 	    }
 	
 	    // Master entry point
 	    if (isMaster && typeof entryFun === 'function') {
+	      console.log('cluster: master elected');
 	      _this2.startWorkers(_this2, _this2.workers, entryFun);
 	    }
 	  });
@@ -434,7 +436,7 @@
 	    } else picked = true;
 	    options.isMaster = true;
 	    options.isSlave = false;
-	    console.log('cluster: master elected');
+	
 	    res.send('master elected');
 	    cb(true);
 	  });
@@ -447,7 +449,6 @@
 	    options.isMaster = false;
 	    options.isSlave = true;
 	
-	    console.log('cluster: slave elected');
 	    res.send('slave elected');
 	    cb(false);
 	  });
@@ -506,7 +507,7 @@
 	
 	function _clusterMapObs(self, obs, data, func, id, worker) {
 	  worker.client.post('work', { func: func, data: data, id: id }, function (err, res, body) {
-	    console.log('cluster: master recieved:', err, res.statusCode, body);
+	    if (self._options) console.log('cluster: master recieved:', err, res.statusCode, body);
 	    obs.onNext(body.data);
 	    obs.onCompleted();
 	  });

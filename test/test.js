@@ -1,9 +1,9 @@
 import Rx from 'rx';
-import RC from '../src';
+//import RC from '../src';
 import assert from 'assert';
 import cluster from 'cluster';
 
-import {NetSystem} from '../src';
+import RC, {NetSystem} from '../src';
 const params = {};
 
 if(process.env.test==='net') {

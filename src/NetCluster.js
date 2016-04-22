@@ -37,7 +37,7 @@ function _isMasterCheck(options, cb) {
     else picked = true;
     options.isMaster = true;
     options.isSlave = false;
-    console.log('cluster: master elected');
+
     res.send('master elected');
     cb(true);
   });
@@ -51,7 +51,6 @@ function _isMasterCheck(options, cb) {
     options.isMaster = false;
     options.isSlave = true;
 
-    console.log('cluster: slave elected');
     res.send('slave elected');
     cb(false);
   });
@@ -97,7 +96,7 @@ function _startWorkers(self, workers, onReady) {
   _.forEach(this.options.clients, c => {
     const worker = { url: c };
     worker.client = request.createClient( worker.url );
-    workers.push( worker )
+    workers.push( worker );
   });
   console.log('workers', workers);
   setTimeout(onReady, 3000);
@@ -105,7 +104,7 @@ function _startWorkers(self, workers, onReady) {
 
 function _clusterMapObs(self, obs, data, func, id, worker) {
   worker.client.post('work', {func, data, id}, (err, res, body) => {
-    console.log('cluster: master recieved:', err, res.statusCode, body);
+    if(self._options) console.log('cluster: master recieved:', err, res.statusCode, body);
     obs.onNext(body.data);
     obs.onCompleted();
   })

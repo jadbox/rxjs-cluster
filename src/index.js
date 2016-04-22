@@ -75,12 +75,14 @@ function _entry(entryFun, childMethods) {
 
     // Child entry point
     if (!isMaster) {
+      console.log('cluster: slave elected');
       this.setupChild(this, this.work);
       return;
     }
 
     // Master entry point
     if (isMaster && typeof entryFun === 'function') {
+      console.log('cluster: master elected');
       this.startWorkers(this, this.workers, entryFun);
     }
   });
