@@ -484,7 +484,14 @@
 	  });
 	
 	  console.log('cluster: listening for /work/:', this.options.port);
+	  this.app.get('/ping/', function (req, res) {
+	    res.send('ping pong: client');
+	  });
 	  this.app.post('/work/', function (req, res) {
+	    if (!req.body || !req.body.func) {
+	      res.send('ping work');
+	      return;
+	    }
 	    var _req$body = req.body;
 	    var func = _req$body.func;
 	    var data = _req$body.data;
@@ -506,6 +513,10 @@
 	    var worker = { url: c };
 	    worker.client = _requestJson2.default.createClient(worker.url);
 	    workers.push(worker);
+	  });
+	
+	  this.app.get('/ping/', function (req, res) {
+	    res.send('ping pong: server');
 	  });
 	  //console.log('workers', workers);
 	  setTimeout(onReady, 3000);

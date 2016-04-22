@@ -81,7 +81,14 @@ function _setupChild(self, work) {
   )
 
   console.log('cluster: listening for /work/:', this.options.port);
+  this.app.get('/ping/', function(req, res) {
+    res.send('ping pong: client');
+  });
   this.app.post('/work/', function(req, res) {
+    if(!req.body || !req.body.func) {
+      res.send('ping work');
+      return;
+    }
     const {func, data, id} = req.body;
     const workParams = {func, data, id};
     console.log('cluster: work recieved', workParams);
@@ -99,6 +106,10 @@ function _startWorkers(self, workers, onReady) {
     const worker = { url: c };
     worker.client = request.createClient( worker.url );
     workers.push( worker );
+  });
+
+  this.app.get('/ping/', function(req, res) {
+    res.send('ping pong: server');
   });
   //console.log('workers', workers);
   setTimeout(onReady, 3000);
