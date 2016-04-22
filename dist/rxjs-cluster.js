@@ -482,7 +482,8 @@
 	    return console.log('Net Child ' + process.pid + ' err', x);
 	  });
 	
-	  app.post('/work', function (req, res) {
+	  console.log('cluster: listening for /work/:', this.options.port);
+	  app.post('/work/', function (req, res) {
 	    var _req$body = req.body;
 	    var func = _req$body.func;
 	    var data = _req$body.data;

@@ -79,7 +79,8 @@ function _setupChild(self, work) {
         }, (x) => console.log('Net Child ' + process.pid + ' err', x)
   )
 
-  app.post('/work', function(req, res) {
+  console.log('cluster: listening for /work/:', this.options.port);
+  app.post('/work/', function(req, res) {
     const {func, data, id} = req.body;
     const workParams = {func, data, id};
     console.log('cluster: work recieved', workParams);
