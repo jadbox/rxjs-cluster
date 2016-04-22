@@ -477,6 +477,7 @@
 	    var id = _ref.id;
 	
 	    if (requests[id] === undefined) throw new Error('request id not issued ' + id);
+	    console.log('cluster: client: responding');
 	    requests[id].send({ data: data, id: id });
 	  }, function (x) {
 	    return console.log('Net Child ' + process.pid + ' err', x);

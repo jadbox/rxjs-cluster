@@ -74,7 +74,8 @@ function _setupChild(self, work) {
           ({
               data, id
           }) => {
-            if(requests[id] === undefined) throw new Error('request id not issued '+id)
+            if(requests[id] === undefined) throw new Error('request id not issued '+id);
+            console.log('cluster: client: responding');
             requests[id].send({data, id});
         }, (x) => console.log('Net Child ' + process.pid + ' err', x)
   )
