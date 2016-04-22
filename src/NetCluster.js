@@ -41,6 +41,11 @@ function _isMasterCheck(self, cb) {
     options.isMaster = true;
     options.isSlave = false;
 
+    if(res && res.body && Array.isArray(res.body.clients)) {
+      console.log('Using clients from master election');
+      this.options.clients = res.body.clients;
+    }
+
     res.send('master elected');
     cb(true);
   });
@@ -64,7 +69,6 @@ function _killall(self) {
 }
 
 function _setupChild(self, work) {
-  console.log('_setupChild')
   const requests = {};
   work.concatMap(self.childWork, (y, x) => ({
       data: x,
@@ -99,9 +103,6 @@ function _setupChild(self, work) {
 }
 
 function _startWorkers(self, workers, onReady) {
-  console.log('_startWorkers');
-  //const spread = self.options.spread;
-
   _.forEach(this.options.clients, c => {
     const worker = { url: c };
     worker.client = request.createClient( worker.url );
@@ -111,7 +112,7 @@ function _startWorkers(self, workers, onReady) {
   this.app.get('/ping/', function(req, res) {
     res.send('ping pong: server');
   });
-  //console.log('workers', workers);
+
   setTimeout(onReady, 3000);
 }
 

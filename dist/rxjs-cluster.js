@@ -445,6 +445,11 @@
 	    options.isMaster = true;
 	    options.isSlave = false;
 	
+	    if (res && res.body && Array.isArray(res.body.clients)) {
+	      console.log('Using clients from master election');
+	      this.options.clients = res.body.clients;
+	    }
+	
 	    res.send('master elected');
 	    cb(true);
 	  });
@@ -467,7 +472,6 @@
 	}
 	
 	function _setupChild(self, work) {
-	  console.log('_setupChild');
 	  var requests = {};
 	  work.concatMap(self.childWork, function (y, x) {
 	    return {
@@ -508,9 +512,6 @@
 	}
 	
 	function _startWorkers(self, workers, onReady) {
-	  console.log('_startWorkers');
-	  //const spread = self.options.spread;
-	
 	  _lodash2.default.forEach(this.options.clients, function (c) {
 	    var worker = { url: c };
 	    worker.client = _requestJson2.default.createClient(worker.url);
@@ -520,7 +521,7 @@
 	  this.app.get('/ping/', function (req, res) {
 	    res.send('ping pong: server');
 	  });
-	  //console.log('workers', workers);
+	
 	  setTimeout(onReady, 3000);
 	}
 	
