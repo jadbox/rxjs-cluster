@@ -25,7 +25,8 @@ export default function ProcCluster(options) {
   this.isMasterCheck = _isMasterCheck.bind(this);
 }
 
-function _isMasterCheck(options, cb) {
+function _isMasterCheck(self, cb) {
+  const options = self._options;
   console.log('cluster: listening port:', this.options.port);
   let picked = false;
 

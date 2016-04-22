@@ -147,14 +147,14 @@
 	
 	  var isMasterEnv = process.env.isMaster === 'true' || this._options.isMaster === true;
 	  var isSlaveEnv = process.env.isSlave === 'true' || this._options.isSlave === true;
-	  var isMasterCheck = isMasterEnv ? function (x) {
-	    return true;
-	  } : isSlaveEnv ? function (x) {
-	    return false;
+	  var isMasterCheck = isMasterEnv ? function (y, x) {
+	    return x(true);
+	  } : isSlaveEnv ? function (y, x) {
+	    return x(false);
 	  } : this.sys.isMasterCheck;
 	
 	  //const isMaster = this._options.isMaster || this.sys.isMaster;
-	  isMasterCheck(options, function (isMaster) {
+	  isMasterCheck(this, function (isMaster) {
 	
 	    // Child entry point
 	    if (!isMaster) {
@@ -258,7 +258,7 @@
 	  this.setupChild = _setupChild.bind(this);
 	  this.startWorkers = _startWorkers.bind(this);
 	  this.killall = _killall.bind(this);
-	  this.isMasterCheck = function (options, cb) {
+	  this.isMasterCheck = function (self, cb) {
 	    return cb(_cluster2.default.isMaster);
 	  };
 	}
@@ -426,7 +426,8 @@
 	  this.isMasterCheck = _isMasterCheck.bind(this);
 	}
 	
-	function _isMasterCheck(options, cb) {
+	function _isMasterCheck(self, cb) {
+	  var options = self._options;
 	  console.log('cluster: listening port:', this.options.port);
 	  var picked = false;
 	

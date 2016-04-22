@@ -5,7 +5,7 @@ export default function ProcCluster(options) {
   if(!options.workers) options.workers = require('os').cpus().length;
 
   this.options = Object.assign({
-    
+
   }, options);
 
 
@@ -13,7 +13,7 @@ export default function ProcCluster(options) {
   this.setupChild = _setupChild.bind(this);
   this.startWorkers = _startWorkers.bind(this);
   this.killall = _killall.bind(this);
-  this.isMasterCheck = (options, cb) => cb(cluster.isMaster);
+  this.isMasterCheck = (self, cb) => cb(cluster.isMaster);
 }
 
 function _killall(self) {
