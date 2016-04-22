@@ -5,10 +5,6 @@ import bodyParser from 'body-parser';
 import request from 'request-json';
 import timeout from 'connect-timeout';
 
-const app = express();
-app.use(timeout('600s'));
-app.use(bodyParser.json());
-
 export default function ProcCluster(options) {
   console.log('--WIP--', options);
 
@@ -24,6 +20,11 @@ export default function ProcCluster(options) {
   this.startWorkers = _startWorkers.bind(this);
   this.killall = _killall.bind(this);
   this.isMasterCheck = _isMasterCheck.bind(this);
+
+  const app = this.app = express();
+  app.use(timeout('600s'));
+  app.use(bodyParser.json())
+  this.appServer = app.listen(this.options.port);
 }
 
 function _isMasterCheck(self, cb) {
@@ -31,7 +32,7 @@ function _isMasterCheck(self, cb) {
   console.log('cluster: listening port:', this.options.port);
   let picked = false;
 
-  app.get('/be/master/', function(req, res) {
+  this.app.get('/be/master/', function(req, res) {
     if(picked) {
       console.log('cluster: already picked as master');
       return;
@@ -44,7 +45,7 @@ function _isMasterCheck(self, cb) {
     cb(true);
   });
 
-  app.get('/be/slave/', function(req, res) {
+  this.app.get('/be/slave/', function(req, res) {
     if(picked) {
       console.log('cluster: already picked as master');
       return;
@@ -56,8 +57,6 @@ function _isMasterCheck(self, cb) {
     res.send('slave elected');
     cb(false);
   });
-
-  app.listen(this.options.port);
 }
 
 function _killall(self) {
@@ -82,7 +81,7 @@ function _setupChild(self, work) {
   )
 
   console.log('cluster: listening for /work/:', this.options.port);
-  app.post('/work/', function(req, res) {
+  this.app.post('/work/', function(req, res) {
     const {func, data, id} = req.body;
     const workParams = {func, data, id};
     console.log('cluster: work recieved', workParams);
@@ -90,7 +89,6 @@ function _setupChild(self, work) {
     work.onNext(workParams);
     //res.send('slave elacted'); // TODO
   });
-
 }
 
 function _startWorkers(self, workers, onReady) {

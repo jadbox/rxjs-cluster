@@ -408,10 +408,6 @@
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
-	var app = (0, _express2.default)();
-	app.use((0, _connectTimeout2.default)('600s'));
-	app.use(_bodyParser2.default.json());
-	
 	function ProcCluster(options) {
 	  console.log('--WIP--', options);
 	
@@ -427,6 +423,11 @@
 	  this.startWorkers = _startWorkers.bind(this);
 	  this.killall = _killall.bind(this);
 	  this.isMasterCheck = _isMasterCheck.bind(this);
+	
+	  var app = this.app = (0, _express2.default)();
+	  app.use((0, _connectTimeout2.default)('600s'));
+	  app.use(_bodyParser2.default.json());
+	  this.appServer = app.listen(this.options.port);
 	}
 	
 	function _isMasterCheck(self, cb) {
@@ -434,7 +435,7 @@
 	  console.log('cluster: listening port:', this.options.port);
 	  var picked = false;
 	
-	  app.get('/be/master/', function (req, res) {
+	  this.app.get('/be/master/', function (req, res) {
 	    if (picked) {
 	      console.log('cluster: already picked as master');
 	      return;
@@ -446,7 +447,7 @@
 	    cb(true);
 	  });
 	
-	  app.get('/be/slave/', function (req, res) {
+	  this.app.get('/be/slave/', function (req, res) {
 	    if (picked) {
 	      console.log('cluster: already picked as master');
 	      return;
@@ -457,8 +458,6 @@
 	    res.send('slave elected');
 	    cb(false);
 	  });
-	
-	  app.listen(this.options.port);
 	}
 	
 	function _killall(self) {
@@ -485,7 +484,7 @@
 	  });
 	
 	  console.log('cluster: listening for /work/:', this.options.port);
-	  app.post('/work/', function (req, res) {
+	  this.app.post('/work/', function (req, res) {
 	    var _req$body = req.body;
 	    var func = _req$body.func;
 	    var data = _req$body.data;
