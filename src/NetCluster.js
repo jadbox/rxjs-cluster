@@ -99,7 +99,7 @@ function _startWorkers(self, workers, onReady) {
     worker.client = request.createClient( worker.url );
     workers.push( worker );
   });
-  console.log('workers', workers);
+  //console.log('workers', workers);
   setTimeout(onReady, 3000);
 }
 
@@ -107,7 +107,7 @@ function _clusterMapObs(self, obs, data, func, id, worker) {
   console.log('cluster: master sending url: '+worker.url+' *' + func + ' id:' + id);
   worker.client.post('work', {func, data, id}, (err, res, body) => {
     //if(self._options)
-    console.log('cluster: master recieved:', err, res ? res.statusCode : res, body);
+    console.log('cluster: master recieved:', err, res ? res.statusCode : res, func, id);
     obs.onNext(body.data);
     obs.onCompleted();
   })

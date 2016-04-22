@@ -164,7 +164,8 @@
 	    }
 	
 	    // Master entry point
-	    if (isMaster && typeof entryFun === 'function') {
+	    if (isMaster) {
+	      // && typeof entryFun === 'function'
 	      console.log('cluster: master elected');
 	      _this2.startWorkers(_this2, _this2.workers, entryFun);
 	    }
@@ -259,7 +260,8 @@
 	  this.startWorkers = _startWorkers.bind(this);
 	  this.killall = _killall.bind(this);
 	  this.isMasterCheck = function (self, cb) {
-	    return cb(_cluster2.default.isMaster);
+	    console.log('cluster.isMaster', _cluster2.default.isMaster);
+	    cb(_cluster2.default.isMaster);
 	  };
 	}
 	
@@ -503,7 +505,7 @@
 	    worker.client = _requestJson2.default.createClient(worker.url);
 	    workers.push(worker);
 	  });
-	  console.log('workers', workers);
+	  //console.log('workers', workers);
 	  setTimeout(onReady, 3000);
 	}
 	
@@ -511,7 +513,7 @@
 	  console.log('cluster: master sending url: ' + worker.url + ' *' + func + ' id:' + id);
 	  worker.client.post('work', { func: func, data: data, id: id }, function (err, res, body) {
 	    //if(self._options)
-	    console.log('cluster: master recieved:', err, res ? res.statusCode : res, body);
+	    console.log('cluster: master recieved:', err, res ? res.statusCode : res, func, id);
 	    obs.onNext(body.data);
 	    obs.onCompleted();
 	  });

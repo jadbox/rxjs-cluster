@@ -82,7 +82,7 @@ function _entry(entryFun, childMethods) {
     }
 
     // Master entry point
-    if (isMaster && typeof entryFun === 'function') {
+    if (isMaster) { // && typeof entryFun === 'function'
       console.log('cluster: master elected');
       this.startWorkers(this, this.workers, entryFun);
     }

@@ -13,7 +13,10 @@ export default function ProcCluster(options) {
   this.setupChild = _setupChild.bind(this);
   this.startWorkers = _startWorkers.bind(this);
   this.killall = _killall.bind(this);
-  this.isMasterCheck = (self, cb) => cb(cluster.isMaster);
+  this.isMasterCheck = (self, cb) => {
+    console.log('cluster.isMaster', cluster.isMaster);
+    cb(cluster.isMaster);
+  }
 }
 
 function _killall(self) {
