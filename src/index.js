@@ -16,7 +16,9 @@ export default function Cluster(options) {
     debug: false
   }, options || {});
 
-  const sys = this.sys = options.system = options.system || new ProcCluster( { workers:options.workers } );
+  if(!options.system) options.system = new ProcCluster( { workers:options.workers } );
+
+  const sys = this.sys = options.system;
 
   this.n = 0; // round-robin scheduling
   this.work = new Rx.Subject(); // Children work
@@ -79,10 +81,8 @@ function _entry(entryFun, childMethods) {
       console.log('cluster: slave elected');
       this.setupChild(this, this.work);
       return;
-    }
-
-    // Master entry point
-    if (isMaster) { // && typeof entryFun === 'function'
+    } else {
+      // Master entry point
       console.log('cluster: master elected');
       this.startWorkers(this, this.workers, entryFun);
     }

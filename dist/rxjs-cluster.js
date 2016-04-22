@@ -88,7 +88,9 @@
 	    debug: false
 	  }, options || {});
 	
-	  var sys = this.sys = options.system = options.system || new _ProcCluster2.default({ workers: options.workers });
+	  if (!options.system) options.system = new _ProcCluster2.default({ workers: options.workers });
+	
+	  var sys = this.sys = options.system;
 	
 	  this.n = 0; // round-robin scheduling
 	  this.work = new _rx2.default.Subject(); // Children work
@@ -161,11 +163,8 @@
 	      console.log('cluster: slave elected');
 	      _this2.setupChild(_this2, _this2.work);
 	      return;
-	    }
-	
-	    // Master entry point
-	    if (isMaster) {
-	      // && typeof entryFun === 'function'
+	    } else {
+	      // Master entry point
 	      console.log('cluster: master elected');
 	      _this2.startWorkers(_this2, _this2.workers, entryFun);
 	    }
@@ -251,6 +250,7 @@
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	function ProcCluster(options) {
+	  console.log('cluster: using ProcCluster');
 	  if (!options.workers) options.workers = __webpack_require__(6).cpus().length;
 	
 	  this.options = Object.assign({}, options);
@@ -299,7 +299,7 @@
 	  var n = 0;
 	  //const workers = self.workers;
 	
-	  _cluster2.default.setupMaster({
+	  if (_cluster2.default.setupMaster) _cluster2.default.setupMaster({
 	    silent: false
 	  });
 	

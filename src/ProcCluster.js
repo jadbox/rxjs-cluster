@@ -2,6 +2,7 @@ import cluster from 'cluster';
 import _ from 'lodash';
 
 export default function ProcCluster(options) {
+  console.log('cluster: using ProcCluster');
   if(!options.workers) options.workers = require('os').cpus().length;
 
   this.options = Object.assign({
@@ -48,7 +49,7 @@ function _startWorkers(self, workers, onReady) {
   var n = 0;
   //const workers = self.workers;
 
-  cluster.setupMaster({
+  if(cluster.setupMaster) cluster.setupMaster({
     silent:false
   });
 
