@@ -71,7 +71,7 @@ function _entry(entryFun, childMethods) {
 
   const isMasterEnv = process.env.isMaster === 'true' || this._options.isMaster === true;
   const isSlaveEnv = process.env.isSlave === 'true' || this._options.isSlave === true;
-  const isMasterCheck = isMasterEnv ? (y,x) => x(true) : isSlaveEnv ? (y,x) => x(false) : this.sys.isMasterCheck;
+  const isMasterCheck = isMasterEnv ? (y,x) => setTimeout(x, 6000, true) : isSlaveEnv ? (y,x) => x(false) : this.sys.isMasterCheck;
 
   //const isMaster = this._options.isMaster || this.sys.isMaster;
   isMasterCheck(this, isMaster => {
@@ -123,5 +123,7 @@ function _clusterMap(that, funcName, nodeSelector) {
     worker.jobIndex++;
 
     that.sys.clusterMapObs(that, obs, data, funcName, jobIndex, worker);
-  }))
+  }
+).retryWhen(e => e.delay(3000))
+)
 };

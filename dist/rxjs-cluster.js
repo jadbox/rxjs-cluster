@@ -150,7 +150,7 @@
 	  var isMasterEnv = process.env.isMaster === 'true' || this._options.isMaster === true;
 	  var isSlaveEnv = process.env.isSlave === 'true' || this._options.isSlave === true;
 	  var isMasterCheck = isMasterEnv ? function (y, x) {
-	    return x(true);
+	    return setTimeout(x, 6000, true);
 	  } : isSlaveEnv ? function (y, x) {
 	    return x(false);
 	  } : this.sys.isMasterCheck;
@@ -206,6 +206,8 @@
 	      worker.jobIndex++;
 	
 	      that.sys.clusterMapObs(that, obs, data, funcName, jobIndex, worker);
+	    }).retryWhen(function (e) {
+	      return e.delay(3000);
 	    });
 	  });
 	};
@@ -497,7 +499,7 @@
 	    var data = _req$body.data;
 	    var id = _req$body.id;
 	
-	    var workParams = { func: func, data: data, id: id };
+	    var workParams = req.body;
 	    console.log('cluster: work recieved', workParams);
 	    requests[id] = res;
 	    work.onNext(workParams);
@@ -523,8 +525,16 @@
 	}
 	
 	function _clusterMapObs(self, obs, data, func, id, worker) {
-	  console.log('cluster: master sending url: ' + worker.url + ' *' + func + ' id:' + id);
+	  console.log('cluster: master sending post:' + worker.url + ' rte:work func:' + func + ' id:' + id);
 	  worker.client.post('work', { func: func, data: data, id: id }, function (err, res, body) {
+	    if (res && parseInt(res.statusCode) !== 200) {
+	      console.log(res.statusCode + ' response from client.');
+	      return obs.onError(res.statusCode + ' response from client.');
+	    }
+	    if (err) {
+	      console.log('err', err);
+	      return obs.onError(err);
+	    }
 	    //if(self._options)
 	    console.log('cluster: master recieved:', err, res ? res.statusCode : res, func, id);
 	    obs.onNext(body.data);

@@ -6,8 +6,8 @@
     "build": "webpack --config webpack.config.js  --progress --colors --watch",
     "test": "mocha --compilers js:babel-core/register test/test.js",
     "test:host": "env test=net port=8090 client=8091 mocha --compilers js:babel-core/register test/test.js",
-    "test:client": "env test=net port=8091 mocha --compilers js:babel-core/register test/test.js",
-    "test:elect": "http localhost:8090/be/master && http localhost:8091/be/slave"
+    "test:client": "env test=net port=8091 client=8091 mocha --compilers js:babel-core/register test/test.js",
+    "test:elect": "http localhost:8090/be/master & http localhost:8091/be/slave"
   },
   "main": "dist/rxjs-cluster.js",
   "author": "Jonathan Dunlap <jdunlap@outlook.com>",
