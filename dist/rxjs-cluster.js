@@ -420,6 +420,7 @@
 	    port: 8090
 	  }, options || {});
 	  if (!Array.isArray(this.options.clients)) this.options.clients = [this.options.clients];
+	  this.options.port = parseInt(this.options.port);
 	
 	  this.clusterMapObs = _clusterMapObs.bind(this);
 	  this.setupChild = _setupChild.bind(this);
