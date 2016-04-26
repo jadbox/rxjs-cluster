@@ -39,7 +39,7 @@ function _setupChild(self, work) {
   )
 
   process.on('message', function onChildMessage(x) {
-    work.onNext(x);
+    work.next(x);
   }); // push work unto task stream
 }
 
@@ -99,8 +99,8 @@ function _clusterMapObs(self, obs, data, funcName, jobIndex, worker) {
       rdata, id
   }) {
       if (id !== jobIndex) return; // ignore
-      obs.onNext(rdata);
-      obs.onCompleted();
+      obs.next(rdata);
+      obs.complete();
       worker.removeListener('message', handler);
   });
   worker.send({

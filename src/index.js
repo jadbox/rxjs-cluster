@@ -1,4 +1,4 @@
-import Rx from 'rx';
+import Rx from 'rxjs/Rx';
 import hash from 'string-hash';
 import _ from 'lodash';
 import ProcCluster from './ProcCluster'
@@ -51,7 +51,7 @@ function _childWork({
   const exec = funcRef(data);
 
   if (!exec.subscribe) {
-    return Rx.Observable.just(exec);
+    return Rx.Observable.of(exec);
   } else return exec.first();
 }
 

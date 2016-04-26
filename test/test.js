@@ -1,4 +1,4 @@
-import Rx from 'rx';
+import Rx from 'rxjs/Rx';
 //import RC from '../src';
 import assert from 'assert';
 import cluster from 'cluster';
@@ -24,7 +24,7 @@ function childTest(x) {
 
 // Child function that returns an Observable
 function childTest$(x) {
-	return Rx.Observable.range(0,3).map("hello " + x + " from " + process.pid).toArray();
+	return Rx.Observable.range(0,3).mapTo("hello " + x + " from " + process.pid).toArray();
 }
 
 function master() {
