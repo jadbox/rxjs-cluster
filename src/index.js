@@ -4,7 +4,7 @@ import _ from 'lodash';
 import ProcCluster from './ProcCluster'
 import NetCluster from './NetCluster'
 
-const Observable = Rx.Observable;
+const Observable = Rx.Observable, Rxo = Observable;
 const observableProto = Observable.prototype;
 
 export var ProcSystem = ProcCluster;

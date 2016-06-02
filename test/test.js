@@ -5,6 +5,7 @@ import cluster from 'cluster';
 
 import RC, {NetSystem} from '../src';
 const params = {};
+const Rxo = Rx.Observable;
 
 if(process.env.test==='net') {
 	params.system =  new NetSystem( {

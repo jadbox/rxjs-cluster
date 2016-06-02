@@ -4,13 +4,16 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import request from 'request-json';
 import timeout from 'connect-timeout';
+import Rx from 'rxjs/Rx'
+const Rxo = Rx.Observable;
 
 export default function ProcCluster(options) {
   console.log('--WIP--', options);
 
   this.options = Object.assign({
     clients: ['http://localhost:8090/'],
-    port: 8090
+    port: 8090,
+    delay: 80
   }, options || {});
   if(!Array.isArray(this.options.clients)) this.options.clients = [ this.options.clients ];
   this.options.port = parseInt(this.options.port);
@@ -25,6 +28,12 @@ export default function ProcCluster(options) {
   app.use(timeout('600s'));
   app.use(bodyParser.json())
   this.appServer = app.listen(this.options.port);
+
+  this._queue = new Rx.Subject();
+
+  this._queue.map(
+     v => { return Rxo.of(v).delay(this.options.delay); } // throttle each, todo: move into NetCluster
+  ).concatAll().subscribe(__clusterMapObs);
 }
 
 function _isMasterCheck(self, cb) {
@@ -79,7 +88,7 @@ function _setupChild(self, work) {
               data, id
           }) => {
             if(requests[id] === undefined) throw new Error('request id not issued '+id);
-            console.log('cluster: client: responding');
+            /// console.log('cluster: client: responding');
             requests[id].send({data, id});
         }, (x) => console.log('Net Child ' + process.pid + ' err', x)
   )
@@ -95,7 +104,7 @@ function _setupChild(self, work) {
     }
     const {func, data, id} = req.body;
     const workParams = req.body;
-    console.log('cluster: work recieved', workParams);
+    /// console.log('cluster: work recieved', workParams);
     requests[id] = res;
     work.next(workParams);
     //res.send('slave elacted'); // TODO
@@ -116,8 +125,13 @@ function _startWorkers(self, workers, onReady) {
   setTimeout(onReady, 3000);
 }
 
+// Queue to throttle connections
 function _clusterMapObs(self, obs, data, func, id, worker) {
-  console.log('cluster: master sending post:'+worker.url+' rte:work func:' + func + ' id:' + id);
+  this._queue.next([obs, data, func, id, worker]);
+}
+
+function __clusterMapObs([obs, data, func, id, worker]) {
+  /// console.log('cluster: master sending post:'+worker.url+' rte:work func:' + func + ' id:' + id);
   worker.client.post('work', {func, data, id}, (err, res, body) => {
     if(res && parseInt(res.statusCode)!==200) {
       console.log(res.statusCode+' response from client.')
@@ -128,7 +142,7 @@ function _clusterMapObs(self, obs, data, func, id, worker) {
       return obs.error(err);
     }
     //if(self._options)
-    console.log('cluster: master recieved:', err, res ? res.statusCode : res, func, id);
+    //console.log('cluster: master recieved:', err, res ? res.statusCode : res, func, id);
     obs.next(body.data);
     obs.complete();
   })

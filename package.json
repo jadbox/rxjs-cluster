@@ -3,7 +3,9 @@
   "version": "0.3.17",
   "description": "Use Node.js cluster support to parallize Rx",
   "scripts": {
-    "build": "webpack --config webpack.config.js  --progress --colors --watch",
+    "build": "webpack --config webpack.config.js  --progress --colors",
+    "build:watch": "webpack --config webpack.config.js  --progress --colors --watch", 
+    "watch": "npm run build:watch",
     "test": "mocha --compilers js:babel-core/register test/test.js",
     "test:host": "env test=net port=8090 client=8091 mocha --compilers js:babel-core/register test/test.js",
     "test:client": "env test=net port=8091 client=8091 mocha --compilers js:babel-core/register test/test.js",
