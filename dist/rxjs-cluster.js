@@ -17732,6 +17732,7 @@
 	  }, options || {});
 	  if (!Array.isArray(this.options.clients)) this.options.clients = [this.options.clients];
 	  this.options.port = parseInt(this.options.port);
+	  this.options.delay = parseInt(this.options.delay);
 	
 	  this.clusterMapObs = _clusterMapObs.bind(this);
 	  this.setupChild = _setupChild.bind(this);
