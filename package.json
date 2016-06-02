@@ -1,6 +1,6 @@
 {
   "name": "rxjs-cluster",
-  "version": "0.3.18",
+  "version": "0.3.19",
   "description": "Use Node.js cluster support to parallize Rx",
   "scripts": {
     "build": "webpack --config webpack.config.js  --progress --colors",
